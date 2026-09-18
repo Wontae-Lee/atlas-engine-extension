@@ -1,5 +1,4 @@
-import { DOMAIN_FIELDS, ENTRY_DEFINITIONS, MATERIAL_FIELDS, OUTPUT_FIELDS, SOLVER_FIELDS } from '../project/project_fields';
-import type { FieldDefinition, ProjectEntry, ProjectState } from '../project/project_types';
+import type { ProjectEntry, ProjectState } from '../project/project_types';
 
 type References = Record<'asset' | 'geometry' | 'material', Set<string>>;
 
@@ -33,60 +32,40 @@ function relative_path(value: unknown, label: string): void {
 	}
 }
 
-function fields(value: unknown, definitions: readonly FieldDefinition[], label: string, references: References): void {
-	const values = object(value, label);
-	for (const definition of definitions) {
-		const item = values[definition.key];
-		const name = `${label}: ${definition.label}`;
-		switch (definition.type) {
-			case 'number':
-			case 'integer':
-				if (typeof item !== 'number' || !Number.isFinite(item)) {
-					throw new Error(`${name} must be a finite number.`);
-				}
-				if (definition.type === 'integer' && !Number.isSafeInteger(item)) {
-					throw new Error(`${name} must be a safe integer.`);
-				}
-				if (definition.min !== undefined && item < definition.min) {
-					throw new Error(`${name} must be at least ${definition.min}.`);
-				}
-				if (definition.max !== undefined && item > definition.max) {
-					throw new Error(`${name} must be at most ${definition.max}.`);
-				}
-				if (definition.exclusive_min !== undefined && item <= definition.exclusive_min) {
-					throw new Error(`${name} must be greater than ${definition.exclusive_min}.`);
-				}
-				break;
-			case 'boolean':
-				if (typeof item !== 'boolean') {
-					throw new Error(`${name} must be true or false.`);
-				}
-				break;
-			case 'vector':
-				vector(item, name);
-				break;
-			case 'vertices':
-				if (!Array.isArray(item) || item.length < 3) {
-					throw new Error(`${name} must contain at least three vertices.`);
-				}
-				item.forEach((vertex, index) => vector(vertex, `${name} ${index + 1}`));
-				break;
-			case 'choice':
-				if (!definition.choices?.some(choice => choice.value === item)) {
-					throw new Error(`${name} is not a supported choice.`);
-				}
-				break;
-			case 'text':
-				text(item, name);
-				break;
-			case 'asset':
-			case 'geometry':
-			case 'material':
-				if (typeof item !== 'string' || !references[definition.type].has(item)) {
-					throw new Error(`${name} refers to a missing ${definition.type}. Remove its references before deleting that item.`);
-				}
-				break;
-		}
+function numeric(value: unknown, label: string,
+	limits: { min?: number; max?: number; exclusive_min?: number; integer?: boolean } = {}): void {
+	if (typeof value !== 'number' || !Number.isFinite(value)) {
+		throw new Error(`${label} must be a finite number.`);
+	}
+	if (limits.integer && !Number.isSafeInteger(value)) {
+		throw new Error(`${label} must be a safe integer.`);
+	}
+	if (limits.min !== undefined && value < limits.min) {
+		throw new Error(`${label} must be at least ${limits.min}.`);
+	}
+	if (limits.max !== undefined && value > limits.max) {
+		throw new Error(`${label} must be at most ${limits.max}.`);
+	}
+	if (limits.exclusive_min !== undefined && value <= limits.exclusive_min) {
+		throw new Error(`${label} must be greater than ${limits.exclusive_min}.`);
+	}
+}
+
+function boolean(value: unknown, label: string): void {
+	if (typeof value !== 'boolean') {
+		throw new Error(`${label} must be true or false.`);
+	}
+}
+
+function choice(value: unknown, choices: readonly string[], label: string): void {
+	if (typeof value !== 'string' || !choices.includes(value)) {
+		throw new Error(`${label} is not a supported choice.`);
+	}
+}
+
+function reference(value: unknown, kind: keyof References, label: string, references: References): void {
+	if (typeof value !== 'string' || !references[kind].has(value)) {
+		throw new Error(`${label} refers to a missing ${kind}. Remove its references before deleting that item.`);
 	}
 }
 
@@ -97,8 +76,57 @@ function ordered_bounds(lower: number[], upper: number[], label: string): void {
 	}
 }
 
-function geometry(entry: ProjectEntry): void {
-	const values = entry.fields;
+function geometry(entry: ProjectEntry, references: References): void {
+	const values = object(entry.fields, entry.name);
+	switch (entry.kind) {
+		case 'sphere':
+			vector(values.center, `${entry.name}: Center`);
+			numeric(values.radius, `${entry.name}: Radius`, { exclusive_min: 0 });
+			break;
+		case 'box':
+			vector(values.lower, `${entry.name}: Lower corner`);
+			vector(values.upper, `${entry.name}: Upper corner`);
+			break;
+		case 'cylinder':
+		case 'polygonal_prism':
+			vector(values.center, `${entry.name}: Center`);
+			numeric(values.radius, `${entry.name}: Radius`, { exclusive_min: 0 });
+			numeric(values.height, `${entry.name}: Height`, { exclusive_min: 0 });
+			if (entry.kind === 'cylinder') {
+				boolean(values.open, `${entry.name}: Open ends`);
+			} else {
+				numeric(values.side_count, `${entry.name}: Side count`, { integer: true, min: 3 });
+			}
+			break;
+		case 'plane':
+			vector(values.normal, `${entry.name}: Normal`);
+			numeric(values.offset, `${entry.name}: Offset (normal · point + offset = 0)`);
+			break;
+		case 'circle':
+		case 'square':
+			vector(values.center, `${entry.name}: Center`);
+			vector(values.normal, `${entry.name}: Normal`);
+			if (entry.kind === 'circle') {
+				numeric(values.radius, `${entry.name}: Radius`, { exclusive_min: 0 });
+			} else {
+				numeric(values.side_length, `${entry.name}: Side length`, { exclusive_min: 0 });
+			}
+			break;
+		case 'triangle':
+			vector(values.a, `${entry.name}: Vertex A`);
+			vector(values.b, `${entry.name}: Vertex B`);
+			vector(values.c, `${entry.name}: Vertex C`);
+			break;
+		case 'triangle_mesh':
+			reference(values.asset_id, 'asset', `${entry.name}: Mesh asset`, references);
+			break;
+		default:
+			throw new Error(`${entry.name}: Unsupported geometry kind '${String(entry.kind)}'.`);
+	}
+	vector(values.translation, `${entry.name}: Translation`);
+	vector(values.rotation, `${entry.name}: Rotation (Euler XYZ)`);
+	vector(values.velocity, `${entry.name}: Velocity`);
+	vector(values.angular_velocity, `${entry.name}: Angular velocity`);
 	if (entry.kind === 'plane' || entry.kind === 'circle' || entry.kind === 'square') {
 		const length = Math.hypot(...values.normal as number[]);
 		if (!(length > 0) || !Number.isFinite(length)) {
@@ -126,6 +154,41 @@ function geometry(entry: ProjectEntry): void {
 		if (!Number.isFinite(ab_length) || !Number.isFinite(ac_length) || !(Math.hypot(...cross) > 0)) {
 			throw new Error(`${entry.name}: Triangle vertices must be distinct and noncollinear.`);
 		}
+	}
+}
+
+function sources(entry: ProjectEntry, references: References): void {
+	if (entry.kind !== 'volume' && entry.kind !== 'surface') {
+		throw new Error(`${entry.name}: Unsupported sources kind '${String(entry.kind)}'.`);
+	}
+	const values = object(entry.fields, entry.name);
+	reference(values.geometry_id, 'geometry', `${entry.name}: Geometry`, references);
+	reference(values.material_id, 'material', `${entry.name}: Material`, references);
+	numeric(values.spacing, `${entry.name}: Particle spacing`, { exclusive_min: 0 });
+	numeric(values.tolerance, `${entry.name}: Tolerance`, { min: 0 });
+	numeric(values.temperature, `${entry.name}: Temperature`, { min: 0 });
+	vector(values.bulk_velocity, `${entry.name}: Bulk velocity`);
+}
+
+function boundaries(entry: ProjectEntry, references: References): void {
+	if (entry.kind !== 'isothermal') {
+		throw new Error(`${entry.name}: Unsupported boundaries kind '${String(entry.kind)}'.`);
+	}
+	const values = object(entry.fields, entry.name);
+	reference(values.geometry_id, 'geometry', `${entry.name}: Geometry`, references);
+	numeric(values.momentum_accommodation_coefficient, `${entry.name}: Momentum accommodation`, { min: 0, max: 1 });
+	numeric(values.restitution, `${entry.name}: Restitution`, { min: 0 });
+	choice(values.diffuse_sampling, ['uniform', 'cosine_weighted'], `${entry.name}: Diffuse sampling`);
+}
+
+function sinks(entry: ProjectEntry, references: References): void {
+	if (!['outside_box', 'volume', 'surface', 'tracing'].includes(entry.kind)) {
+		throw new Error(`${entry.name}: Unsupported sinks kind '${String(entry.kind)}'.`);
+	}
+	const values = object(entry.fields, entry.name);
+	reference(values.geometry_id, 'geometry', `${entry.name}: Geometry`, references);
+	if (entry.kind === 'volume' || entry.kind === 'surface') {
+		numeric(values.tolerance, `${entry.name}: Tolerance`, { min: 0 });
 	}
 }
 
@@ -203,9 +266,21 @@ export function validate_project(state: ProjectState, for_engine = false): void 
 			if (section === 'materials') { references.material.add(id); }
 		}
 	}
-	fields(project.domain, DOMAIN_FIELDS, 'Domain', references);
-	fields(project.solver, SOLVER_FIELDS, 'DSMC solver', references);
-	fields(project.output, OUTPUT_FIELDS, 'Output', references);
+	const domain = object(project.domain, 'Domain');
+	vector(domain.lower_corner, 'Domain: Lower corner');
+	vector(domain.upper_corner, 'Domain: Upper corner');
+	numeric(domain.cell_size, 'Domain: Cell size', { exclusive_min: 0 });
+	const solver = object(project.solver, 'DSMC solver');
+	choice(solver.collision_model, ['vhs', 'vss'], 'DSMC solver: Collision model');
+	numeric(solver.dt, 'DSMC solver: Time step', { exclusive_min: 0 });
+	numeric(solver.statistical_weight, 'DSMC solver: Statistical weight', { exclusive_min: 0 });
+	numeric(solver.buffer_size, 'DSMC solver: Particle capacity', { integer: true, min: 1, max: 2147483647 });
+	numeric(solver.majorant_sample_pairs, 'DSMC solver: Majorant sample pairs', { integer: true, min: 1, max: 2147483647 });
+	numeric(solver.majorant_exhaustive_limit, 'DSMC solver: Majorant exhaustive limit', { integer: true, min: 2, max: 2147483647 });
+	const output = object(project.output, 'Output');
+	boolean(output.enabled, 'Output: CSV observer enabled');
+	numeric(output.interval, 'Output: Sampling interval', { integer: true, min: 1, max: 2147483647 });
+	text(output.output_directory, 'Output: Directory in container');
 	ordered_bounds(state.domain.lower_corner, state.domain.upper_corner, 'Domain');
 	relative_path(state.output.output_directory, 'Output directory');
 	for (const asset of state.assets) {
@@ -222,7 +297,15 @@ export function validate_project(state: ProjectState, for_engine = false): void 
 		if (material.collision_model !== 'vhs' && material.collision_model !== 'vss') {
 			throw new Error(`${material.name}: Collision model must be VHS or VSS.`);
 		}
-		fields(material.properties, MATERIAL_FIELDS, material.name, references);
+		const properties = object(material.properties, material.name);
+		numeric(properties.mass, `${material.name}: Mass`, { exclusive_min: 0 });
+		numeric(properties.reference_diameter, `${material.name}: Reference diameter`, { exclusive_min: 0 });
+		numeric(properties.reference_temperature, `${material.name}: Reference temperature`, { exclusive_min: 0 });
+		numeric(properties.viscosity_index, `${material.name}: Viscosity index (Bird omega)`, { min: 0.5, max: 1.5 });
+		numeric(properties.scattering_parameter, `${material.name}: Scattering parameter (alpha)`, { min: 1 });
+		numeric(properties.translational_energy, `${material.name}: Translational energy`, { min: 0 });
+		numeric(properties.rotational_energy, `${material.name}: Rotational energy`, { min: 0 });
+		numeric(properties.vibrational_energy, `${material.name}: Vibrational energy`, { min: 0 });
 		if (for_engine && material.collision_model !== state.solver.collision_model) {
 			throw new Error(`${material.name}: Choose a ${state.solver.collision_model.toUpperCase()} material preset to match the solver.`);
 		}
@@ -230,19 +313,18 @@ export function validate_project(state: ProjectState, for_engine = false): void 
 			throw new Error(`${material.name}: VHS requires a scattering parameter of 1.`);
 		}
 	}
-	for (const section of ['geometry', 'sources', 'boundaries', 'sinks'] as const) {
-		for (const entry of state[section]) {
-			const definition = ENTRY_DEFINITIONS[section]?.find(candidate => candidate.kind === entry.kind);
-			if (!definition) {
-				throw new Error(`${entry.name}: Unsupported ${section} kind '${String(entry.kind)}'.`);
-			}
-			fields(entry.fields, definition.fields, entry.name, references);
-			if (section === 'geometry') { geometry(entry); }
-		}
-	}
+	for (const entry of state.geometry) { geometry(entry, references); }
+	for (const entry of state.sources) { sources(entry, references); }
+	for (const entry of state.boundaries) { boundaries(entry, references); }
+	for (const entry of state.sinks) { sinks(entry, references); }
 	for (const source of state.sources) {
 		const shape = state.geometry.find(entry => entry.id === source.fields.geometry_id)!;
 		source_geometry(source, shape);
+	}
+	for (const sink of state.sinks) {
+		if (sink.kind === 'outside_box' && state.geometry.find(entry => entry.id === sink.fields.geometry_id)?.kind !== 'box') {
+			throw new Error(`${sink.name}: Outside Box Sink requires box geometry.`);
+		}
 	}
 	if (for_engine && state.materials.length === 0) {
 		throw new Error('Add at least one material before applying the project to Atlas.');

@@ -1,8 +1,9 @@
 import * as assert from 'node:assert';
+import { empty_project } from './helpers/empty_project';
 import type * as vscode from 'vscode';
 import { MoleculeCatalog } from '../src/atlas/catalog/molecule_catalog';
 import { CaseProject } from '../src/atlas/project/case_project';
-import { ProjectEditor } from '../src/atlas/project/project_editor';
+import { Solvers } from '../src/atlas/views/left/solvers';
 import { Streaming } from '../src/atlas/streaming/streaming';
 import type { SimulationConfig, SimulationSnapshot } from '../src/atlas/streaming/streaming_types';
 import { ConnectionSource } from './helpers/connection_source';
@@ -15,11 +16,11 @@ function snapshot(): SimulationSnapshot {
 	};
 }
 
-suite('Project editor simulation controls', () => {
+suite('Solver view simulation controls', () => {
 	let connection: StreamingConnection;
 	let streaming: Streaming;
 	let project: CaseProject;
-	let editor: ProjectEditor;
+	let solvers: Solvers;
 	let api: typeof vscode;
 	let confirmation: string | undefined;
 	let warnings: string[];
@@ -28,7 +29,7 @@ suite('Project editor simulation controls', () => {
 		connection = new StreamingConnection();
 		streaming = new Streaming(new ConnectionSource(connection));
 		const catalog = new MoleculeCatalog();
-		project = new CaseProject(catalog);
+		project = new CaseProject(catalog, empty_project());
 		const properties = catalog.create_materials([{
 			preset_id: 'ar-sparta-argon-vhs',
 			energy: { translational_energy: 0, rotational_energy: 0, vibrational_energy: 0 }
@@ -60,7 +61,7 @@ suite('Project editor simulation controls', () => {
 			state.sinks.push({ id: 'sink', name: 'Sink', kind: 'tracing', fields: { geometry_id: 'sphere' } });
 			state.output.enabled = true;
 		});
-		editor = new ProjectEditor(project, streaming);
+		solvers = new Solvers(project, streaming);
 		confirmation = 'Apply';
 		warnings = [];
 		api = {
@@ -74,12 +75,13 @@ suite('Project editor simulation controls', () => {
 	});
 
 	teardown(() => {
+		solvers.dispose();
 		streaming.dispose();
 		project.dispose();
 	});
 
 	async function begin_apply(index: number) {
-		const pending = editor.execute(api, { section: 'solvers', action: 'apply' });
+		const pending = solvers.execute(api, { section: 'solvers', action: 'apply' });
 		const request = await Promise.race([
 			connection.wait_for_request(index),
 			pending.then(() => { throw new Error('Apply completed without sending an initialize request.'); })
@@ -152,7 +154,7 @@ suite('Project editor simulation controls', () => {
 		const previous = streaming.last_snapshot;
 		const applied = project.applied_revision;
 		confirmation = undefined;
-		await editor.execute(api, { section: 'solvers', action: 'apply' });
+		await solvers.execute(api, { section: 'solvers', action: 'apply' });
 		assert.strictEqual(warnings.length, 1);
 		assert.strictEqual(connection.requests.length, 1);
 		assert.strictEqual(streaming.last_snapshot, previous);
@@ -163,7 +165,7 @@ suite('Project editor simulation controls', () => {
 	test('Changing a case after Apply blocks Start until the new revision is applied', async () => {
 		await apply_initial();
 		await project.change(state => { state.solver.dt = 2e-6; });
-		await assert.rejects(editor.execute(api, { section: 'solvers', action: 'start' }), /Apply the current case/);
+		await assert.rejects(solvers.execute(api, { section: 'solvers', action: 'start' }), /Apply the current case/);
 		assert.strictEqual(connection.requests.length, 1);
 		assert.strictEqual(streaming.state, 'ready');
 	});

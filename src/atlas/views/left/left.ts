@@ -1,5 +1,8 @@
 import type { CaseProject } from '../../project/case_project';
 import type { Streaming } from '../../streaming/streaming';
+import type * as vscode from 'vscode';
+import type { ViewAction } from '../view_types';
+import type { ProjectView } from '../project_view';
 import { ViewContainer } from '../view_container';
 import { Assets } from './assets';
 import { Boundaries } from './boundaries';
@@ -12,17 +15,27 @@ import { Solvers } from './solvers';
 import { Sources } from './sources';
 
 export class Left extends ViewContainer {
+	declare readonly views: readonly ProjectView[];
+
 	constructor(project: CaseProject, streaming: Streaming) {
 		super('atlas-engine', 'ATLAS', 'activitybar', [
-			new Domain(project, streaming),
-			new Assets(project, streaming),
-			new Materials(project, streaming),
-			new Geometry(project, streaming),
-			new Sources(project, streaming),
-			new Boundaries(project, streaming),
-			new Sinks(project, streaming),
+			new Domain(project),
+			new Assets(project),
+			new Materials(project),
+			new Geometry(project),
+			new Sources(project),
+			new Boundaries(project),
+			new Sinks(project),
 			new Solvers(project, streaming),
-			new Output(project, streaming)
+			new Output(project)
 		]);
+	}
+
+	execute(api: typeof vscode, action: ViewAction): Promise<void> {
+		const view = this.views.find(candidate => candidate.section === action.section);
+		if (!view) {
+			throw new Error(`Unknown sidebar section: ${action.section}`);
+		}
+		return view.execute(api, action);
 	}
 }

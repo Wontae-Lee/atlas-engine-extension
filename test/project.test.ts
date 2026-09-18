@@ -2,9 +2,9 @@ import * as assert from 'node:assert';
 import type * as vscode from 'vscode';
 import { MoleculeCatalog } from '../src/atlas/catalog/molecule_catalog';
 import { CaseProject } from '../src/atlas/project/case_project';
-import { ENTRY_DEFINITIONS } from '../src/atlas/project/project_fields';
 import type { EntrySection, FieldValue, MaterialRecord, ProjectEntry, ProjectState } from '../src/atlas/project/project_types';
 import type { CollisionModel } from '../src/atlas/streaming/streaming_types';
+import { empty_project } from './helpers/empty_project';
 
 const api = {} as typeof vscode;
 
@@ -28,7 +28,7 @@ function fixture() {
 			writes.push({ key, value: copy });
 		}
 	};
-	const project = new CaseProject(catalog);
+	const project = new CaseProject(catalog, empty_project());
 	project.initialize(api, storage);
 	return {
 		project, catalog, storage, stored, writes,
@@ -46,13 +46,20 @@ function material(catalog: MoleculeCatalog, id: string, model: CollisionModel = 
 }
 
 function entry(section: EntrySection, kind: string, id: string, references: Record<string, FieldValue> = {}): ProjectEntry {
-	const definition = ENTRY_DEFINITIONS[section]?.find(candidate => candidate.kind === kind);
-	assert.ok(definition, `${section}: ${kind}`);
-	const fields: Record<string, FieldValue> = {};
-	for (const field of definition.fields) {
-		if (field.default_value !== undefined) {
-			fields[field.key] = structuredClone(field.default_value);
-		}
+	const fixtures: Record<string, Record<string, FieldValue>> = {
+		'geometry:sphere': { center: [0, 0, 0], radius: 0.5 },
+		'geometry:box': { lower: [-0.5, -0.5, -0.5], upper: [0.5, 0.5, 0.5] },
+		'geometry:plane': { normal: [0, 0, 1], offset: 0 },
+		'geometry:triangle': { a: [0, 0, 0], b: [1, 0, 0], c: [0, 1, 0] },
+		'geometry:triangle_mesh': {},
+		'sources:volume': { spacing: 0.1, tolerance: 0, temperature: 273.15, bulk_velocity: [0, 0, 0] },
+		'boundaries:isothermal': { momentum_accommodation_coefficient: 1, restitution: 1, diffuse_sampling: 'uniform' },
+		'sinks:tracing': {}
+	};
+	const fields = fixtures[`${section}:${kind}`];
+	assert.ok(fields, `${section}: ${kind}`);
+	if (section === 'geometry') {
+		Object.assign(fields, { translation: [0, 0, 0], rotation: [0, 0, 0], velocity: [0, 0, 0], angular_velocity: [0, 0, 0] });
 	}
 	return { id, name: id, kind, fields: { ...fields, ...references } };
 }

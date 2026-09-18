@@ -2,24 +2,6 @@ import type { CollisionModel, MoleculeConfig } from '../streaming/streaming_type
 
 export type FieldValue = number | string | boolean | number[] | number[][];
 
-export interface FieldDefinition {
-	key: string;
-	label: string;
-	type: 'number' | 'integer' | 'vector' | 'vertices' | 'boolean' | 'text' | 'choice' | 'asset' | 'geometry' | 'material';
-	default_value?: FieldValue;
-	min?: number;
-	max?: number;
-	exclusive_min?: number;
-	choices?: readonly { label: string; value: string }[];
-	unit?: string;
-}
-
-export interface EntryDefinition {
-	kind: string;
-	label: string;
-	fields: readonly FieldDefinition[];
-}
-
 export interface ProjectEntry {
 	id: string;
 	name: string;
@@ -43,10 +25,10 @@ export interface AssetRecord {
 }
 
 export type EntrySection = 'geometry' | 'sources' | 'boundaries' | 'sinks';
-export type ProjectSection = EntrySection | 'domain' | 'assets' | 'materials' | 'solvers' | 'output';
 
 export interface ProjectState {
 	version: 1;
+	initial_preset?: 'nitrogen_sphere';
 	domain: { lower_corner: number[]; upper_corner: number[]; cell_size: number };
 	solver: {
 		collision_model: CollisionModel;
@@ -63,11 +45,4 @@ export interface ProjectState {
 	sources: ProjectEntry[];
 	boundaries: ProjectEntry[];
 	sinks: ProjectEntry[];
-}
-
-export interface ProjectAction {
-	section: ProjectSection;
-	action: 'add' | 'edit' | 'remove' | 'rename' | 'replace' | 'reveal' | 'preset' | 'apply' | 'start' | 'pause' | 'step' | 'reset';
-	id?: string;
-	field?: string;
 }

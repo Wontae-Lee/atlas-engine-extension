@@ -79,6 +79,7 @@ class EngineSession:
         scene = EngineScene(self._number, self._vector)
         try:
             scene_arguments = scene.build(scene_config, table, len(materials))
+            scene_arguments.setdefault("sinks", []).extend(scene.domain_sinks(lower, upper))
             fluid = Fluid.from_arrays(
                 particles["positions"], particles["velocities"],
                 statistical_weight=weight, materials=table, species=particles["species"], buffer_size=capacity,

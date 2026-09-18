@@ -8,7 +8,6 @@ import { Streaming } from './streaming/streaming';
 import { Layout } from './views/layout';
 import { MoleculeCatalog } from './catalog/molecule_catalog';
 import { CaseProject } from './project/case_project';
-import { ProjectEditor } from './project/project_editor';
 import { EditProject } from './commands/edit_project';
 
 export interface Contributions {
@@ -34,7 +33,7 @@ export function createContributions(): Contributions {
 		layout,
 		commands: [
 			new HelloWorld(), new SelectBackend(backend), new CheckBackend(backend), new ShowLayout(layout),
-			new EditProject(new ProjectEditor(project, streaming))
+			new EditProject(layout.left)
 		]
 	};
 }

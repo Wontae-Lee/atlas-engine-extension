@@ -1,9 +1,9 @@
 import type * as vscode from 'vscode';
-import type { MoleculePreset } from '../catalog/catalog_types';
-import type { CaseProject } from './case_project';
-import type { FieldDefinition, FieldValue } from './project_types';
+import type { CaseProject } from '../project/case_project';
+import type { FieldValue } from '../project/project_types';
+import type { FieldDefinition } from '../views/view_types';
 
-export class ProjectInput {
+export class ViewInput {
 	constructor(private readonly api: typeof vscode, private readonly project: CaseProject) {}
 
 	async name(value: string): Promise<string | undefined> {
@@ -11,18 +11,6 @@ export class ProjectInput {
 			title: 'Atlas: Name', value, ignoreFocusOut: true,
 			validateInput: text => text.trim() ? undefined : 'Enter a name.'
 		});
-	}
-
-	async preset(): Promise<MoleculePreset | undefined> {
-		const model = this.project.get_state().solver.collision_model;
-		const sources = this.project.catalog.get_sources();
-		const selected = await this.api.window.showQuickPick(this.project.catalog.list({ collision_model: model }).map(preset => ({
-			label: preset.species,
-			description: `${preset.name} · ${model.toUpperCase()}`,
-			detail: `${sources.find(source => source.id === preset.source_id)?.title}; d = ${preset.reference_diameter} m; omega = ${preset.viscosity_index}; alpha = ${preset.scattering_parameter}; Tref = ${preset.reference_temperature} K`,
-			preset
-		})), { title: 'Atlas: Select Molecule Preset', matchOnDescription: true, matchOnDetail: true, ignoreFocusOut: true });
-		return selected?.preset;
 	}
 
 	async field(field: FieldDefinition, current?: FieldValue): Promise<FieldValue | undefined> {

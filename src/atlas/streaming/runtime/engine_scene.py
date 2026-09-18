@@ -29,7 +29,12 @@ class EngineScene:
             self.geometry[entry["id"]] = geometry
         emitters = [self._source(entry, materials, material_count) for entry in self._entries(config, "sources")]
         colliders = [self._boundary(entry) for entry in self._entries(config, "boundaries")]
-        sinks = [self._sink(entry) for entry in self._entries(config, "sinks")]
+        sinks = []
+        for entry in self._entries(config, "sinks"):
+            if entry["kind"] == "outside_box":
+                sinks.extend(self._outside_box(entry))
+            else:
+                sinks.append(self._sink(entry))
         observer = self._observer(config.get("output"))
         return {"emitters": emitters, "colliders": colliders, "sinks": sinks, "observer": observer}
 
@@ -202,6 +207,35 @@ class EngineScene:
             restitution=self._scalar(fields, "restitution", 1, nonnegative=True),
             diffuse_sampling=getattr(atlas.DiffuseSampling, sampling),
         )
+
+    def _outside_box(self, entry):
+        unit = self._unit(entry["fields"])
+        geometry = self.geometry_configs[entry["fields"]["geometry_id"]]
+        if geometry["kind"] != "box":
+            raise ValueError("Outside Box Sink requires box geometry.")
+        lower = self.vector(geometry["fields"].get("lower"), "lower")
+        upper = self.vector(geometry["fields"].get("upper"), "upper")
+        return self._exterior_sinks(lower, upper, unit)
+
+    def domain_sinks(self, lower, upper):
+        return self._exterior_sinks(lower, upper)
+
+    @staticmethod
+    def _exterior_sinks(lower, upper, unit=None):
+        sinks = []
+        for axis in range(3):
+            for direction, bound in ((1, lower[axis]), (-1, upper[axis])):
+                normal = [0, 0, 0]
+                normal[axis] = direction
+                threshold = np.nextafter(bound, np.float32(-math.inf if direction == 1 else math.inf))
+                if not np.isfinite(threshold):
+                    raise ValueError("Removal bounds must leave room for a finite exterior threshold.")
+                plane = atlas.Plane(atlas.Float3(*normal), float(-direction * threshold))
+                boundary = atlas.Unit(plane) if unit is None else atlas.Unit(
+                    plane, sync=unit.sync, velocity=unit.velocity, angular_velocity=unit.angular_velocity,
+                )
+                sinks.append(atlas.VolumeSink(boundary, tolerance=0))
+        return sinks
 
     def _sink(self, entry):
         fields, kind = entry["fields"], entry["kind"]
