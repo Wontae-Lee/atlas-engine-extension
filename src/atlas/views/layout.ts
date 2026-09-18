@@ -12,12 +12,13 @@ import type { Streaming } from '../streaming/streaming';
 export class Layout implements vscode.Disposable {
 	private disposed = false;
 	readonly left: Left;
-	readonly right = new Right();
+	readonly right: Right;
 	readonly bottom = new Bottom();
 	readonly center = new Center();
 
 	constructor(project: CaseProject, streaming: Streaming) {
 		this.left = new Left(project, streaming);
+		this.right = new Right(project, streaming);
 	}
 
 	get containers(): readonly ViewContainer[] {

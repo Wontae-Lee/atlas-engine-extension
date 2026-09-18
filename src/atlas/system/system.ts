@@ -67,11 +67,16 @@ export class System implements vscode.Disposable {
 		this.contributions.backend.initialize(this.api, this.storage);
 		this.contributions.layout.initialize(this.api);
 		const refresh = () => this.contributions.layout.update();
-		const refresh_solver = () => this.contributions.layout.left.views.find(view => view.id === 'atlas-engine.solvers')?.update();
+		const refresh_simulation = () => {
+			this.contributions.layout.left.views.find(view => view.id === 'atlas-engine.solvers')?.update();
+			for (const view of this.contributions.layout.right.views) {
+				view.update();
+			}
+		};
 		this.registrations.push(
 			{ dispose: this.contributions.project.on_change(refresh) },
-			{ dispose: this.contributions.streaming.on_state(refresh_solver) },
-			{ dispose: this.contributions.streaming.on_snapshot(refresh_solver) }
+			{ dispose: this.contributions.streaming.on_state(refresh_simulation) },
+			{ dispose: this.contributions.streaming.on_snapshot(refresh_simulation) }
 		);
 		const watcher = this.api.workspace.createFileSystemWatcher('**/assets/geometry/**');
 		const assets_changed = () => this.contributions.project.assets_changed();

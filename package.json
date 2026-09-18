@@ -59,7 +59,7 @@
       "secondarySidebar": [
         {
           "id": "atlas-engine-inspector",
-          "title": "ATLAS INSPECTOR",
+          "title": "SIMULATION STATUS",
           "icon": "media/atlas-engine-logo.svg"
         }
       ],
@@ -114,15 +114,7 @@
       "atlas-engine-inspector": [
         {
           "id": "atlas-engine.inspector",
-          "name": "INSPECTOR"
-        },
-        {
-          "id": "atlas-engine.selection",
-          "name": "SELECTION"
-        },
-        {
-          "id": "atlas-engine.properties",
-          "name": "PROPERTIES"
+          "name": "SIMULATION STATUS"
         }
       ],
       "atlas-engine-logs": [
