@@ -24,9 +24,9 @@ flowchart LR
 
 `createContributions()` creates a Backend and a Streaming instance using it.
 Inject that same Streaming into consuming commands or panels. Streaming does not
-call VS Code UI APIs; consumers choose how to display the received data. The
-registered sidebar sections are UI shells and do not
-call Streaming operations.
+call VS Code UI APIs; consumers choose how to display the received data. The central Simulation view owns Apply, Start, Pause, Step, and Reset. Left
+OUTPUT exports snapshots, right SIMULATION STATUS displays statistics, and bottom
+SIMULATION LOG records progress and errors. SOLVERS edits configuration only.
 
 | File under `src/atlas/` | Responsibility |
 | --- | --- |
@@ -35,6 +35,7 @@ call Streaming operations.
 | `streaming/runtime_source.ts` | Read Python assets and assemble the container bootstrap |
 | `streaming/runtime/engine_server.py` | Dispatch allowed requests and encode results/errors |
 | `streaming/runtime/engine_session.py` | Create, retain, advance, read, and modify the Atlas System |
+| `streaming/runtime/engine_scene.py` | Build geometry, sources, colliders, sinks, observers, and temporary OBJ resources |
 | `detail/private_helpers.ts` | Shared helpers including snapshot validation |
 
 ## API
@@ -70,67 +71,65 @@ connection. Calling `start()` again continues the same System. Manual requests
 are rejected while running or busy: use `await pause()` before querying,
 modifying, resetting, or closing a running session.
 
-## Initialization Example
+## Case Application and Scene Construction
 
-This is a consumer-side example, not a fixed simulation embedded in the runtime.
-`streaming` denotes the shared instance injected into a command or panel.
+The normal UI path converts `CaseProject` through `to_simulation_config()` and
+passes the result to `initialize()`. Apply records the project revision only after
+a successful response. Editing the case makes that revision stale; Start, Step,
+and Reset require the current case to be applied. Replacing an existing session
+requires confirmation. Reset replays the last applied initial configuration,
+including its initial particles, rather than restoring the default sidebar case.
+
+`SimulationConfig` includes material parameters, collision model (`vhs` or `vss`),
+solver controls, particle buffer capacity, domain, initial particles, and an
+optional scene. Particle positions and velocities are three-number tuples;
+species values index the material array. The runtime validates finite values,
+float32 representability, positive time step/statistical weight/cell size,
+domain bounds, material references, and buffer capacity. Sources require an
+explicit particle buffer capacity.
+
+EngineSession constructs Molecule materials, MaterialDictionary, Fluid, Universe,
+the selected DSMC kernel/solver, and a persistent Atlas System. EngineScene
+constructs the configured scene:
+
+| Configuration | Runtime behavior |
+| --- | --- |
+| Geometry | Sphere, box, open cylinder, plane, circle, square, triangle, polygonal prism, and triangle mesh |
+| Transform | Translation, Euler XYZ orientation, linear velocity, and angular velocity |
+| Sources | Volume/surface sampling with a Maxwell-Boltzmann generator, material, temperature, and bulk velocity |
+| Boundaries | Isothermal colliders with accommodation, restitution, and diffuse sampling settings |
+| Sinks | Volume, surface, tracing, and outside-box removal |
+| Domain | Automatic removal outside its six faces, independent of user-defined sinks |
+| Observer | Optional interval-based output to a directory inside the container |
+
+Native geometry validity and source sampling are checked before a replacement
+scene becomes active. Infinite planes cannot be sources, and two-dimensional
+circle/square/triangle geometry cannot be a volume source. Empty source sampling
+is rejected. Domain removal preserves positions exactly on a domain boundary;
+there is no sidebar option to disable outside-domain deletion.
+
+Triangle-mesh asset text travels with the scene configuration and becomes a
+temporary OBJ file inside the container. No host absolute mesh path or volume
+mount is required. Closing the scene removes its temporary mesh resources.
+Observer output is separate, under the container's temporary `atlas-results`
+directory and configured relative output path. It is not automatically copied to
+the host and is lost when the container is removed.
+
+For programmatic control, use the shared Streaming instance:
 
 ```ts
-import type { SimulationConfig } from '../streaming/streaming_types';
-
-const config: SimulationConfig = {
-    dt: 1e-4,
-    statistical_weight: 1e18,
-    materials: [{
-        mass: 4.65e-26,
-        translational_energy: 0,
-        rotational_energy: 0,
-        vibrational_energy: 0,
-        reference_diameter: 4.17e-10,
-        reference_temperature: 273,
-        viscosity_index: 0.74,
-        scattering_parameter: 1
-    }],
-    domain: {
-        lower_corner: [0, 0, 0],
-        upper_corner: [1, 1, 1],
-        cell_size: 1
-    },
-    particles: {
-        positions: [[0.4, 0.5, 0.5], [0.6, 0.5, 0.5]],
-        velocities: [[100, 0, 0], [-100, 0, 0]],
-        species: [0, 0]
-    }
-};
-
-const initial = await streaming.initialize(config);
+const revision = project.revision;
+const initial = await streaming.initialize(await project.to_simulation_config());
+project.mark_applied(revision);
 const next = await streaming.step(10);
-const unsubscribe = streaming.on_snapshot(snapshot => {
-    console.log(snapshot.step, snapshot.particle_count);
-});
 streaming.start({ steps_per_update: 1, interval_ms: 100 });
-```
-
-A later pause/reset/close action can use:
-
-```ts
 await streaming.pause();
-const paused = await streaming.get_snapshot();
 await streaming.reset();
 await streaming.close();
-unsubscribe();
 ```
 
-Positions and velocities are arrays of three-number tuples. Species is an integer
-array of the same length, with each value indexing `materials`. The runtime
-validates finite numeric inputs and float32 representability, positive `dt`,
-statistical weight and cell size, domain bounds, and species references.
-Reinitialize with a new configuration to change the particle count.
-
-The runtime currently constructs Molecule materials, an array-backed Fluid,
-Universe, and DsmcSolver. It does not expose source, collider, or sink configuration.
-A Universe extent alone does not define reflecting or periodic boundaries. Choose
-physical units and parameters consistently with the engine model.
+This sequence illustrates the service API; UI consumers must also handle current
+state, errors, confirmation, and stale project revisions as SimulationView does.
 
 ## Snapshots and Protocol
 
@@ -176,7 +175,8 @@ while preserving the current simulation.
 
 ## Runtime Assets and Validation
 
-esbuild copies `engine_session.py` and `engine_server.py` to `dist/runtime/`.
+esbuild copies `engine_scene.py`, `engine_session.py`, and `engine_server.py`
+to `dist/runtime/`.
 Opening a connection reads those assets and assembles a temporary Python package
 inside the container. Atlas and NumPy come from the image; the host does not need
 an Atlas Python installation. Native output is redirected away from protocol
@@ -187,6 +187,24 @@ request ordering, pause/resume, stale responses, and failure handling. Docker
 transport tests use a temporary executable. Neither proves that the real Python
 runtime or simulation executes successfully.
 
-Manifest generation, type checking, lint, and bundling passed for the sidebar-only
-UI. Tests, Docker, and real simulations have not validated the current runtime
-replacement. See [Development workflow](development.md#checks-and-tests).
+A validation report must identify the commands actually executed for that change.
+Source inspection, substitute tests, native engine checks, and visual interaction
+checks establish different things. See
+[Development workflow](development.md#checks-and-tests).
+
+## Presentation and Exports
+
+Streaming retains full particle snapshots. The central browser preview receives
+at most 20,000 sampled particles per frame, together with the true particle count.
+Right-side statistics and left-side CSV exports use the full snapshot. The
+preview renders configured geometry at its initial pose: live unit transforms
+are not part of the snapshot protocol.
+
+The right sidebar shows step/time, particle/cell counts, speed statistics, species
+counts, and a bounded history of recent snapshots. SIMULATION LOG records state
+changes and throttled progress; it is separate from Docker/native diagnostics.
+
+OUTPUT offers particle CSV (positions, velocities, species indices, step, time)
+and statistics CSV (counts and speed statistics per populated species). Each
+export captures one snapshot before opening the save dialog so ongoing execution
+does not mix steps. These exports are independent of runtime observer files.

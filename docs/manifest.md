@@ -1,158 +1,117 @@
 # Component Registration and Manifest Generation
 
-Declare views, commands, and panels as classes under `src/atlas/` and compose
-instances in `createContributions()` in `src/atlas/contributions.ts`. System and
-the manifest generator use this same function for runtime registration and
-metadata extraction respectively.
-
-Root `package.json` is generated output. Edit its sources and commit the generated
-result with the change when regeneration is authorized.
+`package.json` is generated from JSONC configuration and the same class composition
+used at runtime. Edit the sources below; regenerate the manifest when execution
+is authorized, and include its changes with the feature.
 
 ## Sources and Outputs
 
-| Source | Generated information or responsibility |
+| Source | Responsibility |
 | --- | --- |
-| `config/package.jsonc` | Extension identity, version, activation, compatibility, and entry point |
+| `config/package.jsonc` | Identity, version, compatibility, activation, and entry point |
 | `config/scripts.jsonc` | npm scripts |
 | `config/dependencies.jsonc` | Dependencies and overrides |
-| `createContributions().containers` | `contributes.viewsContainers.activitybar` |
-| `createContributions().views` | `contributes.views` and optional `viewsWelcome` |
-| `createContributions().commands` | `contributes.commands` |
-| `createContributions().panels` | Panel-opening command declarations |
-| `scripts/read_contributions.cjs` | Bundle and evaluate composition; extract instance metadata |
-| `scripts/generate_manifest.py` | Parse JSONC, merge metadata, and write package.json |
+| `src/atlas/contributions.ts` | Construct shared services, Layout, and commands |
+| `layout.containers` | Containers at `activitybar`, `secondarySidebar`, or `panel`, and their native views |
+| `commands` | Explicit command declarations |
+| `layout.center.views` | Editor-opening commands derived from `command_id` and title |
+| `scripts/read_contributions.cjs` | Bundle composition in memory and extract metadata |
+| `scripts/generate_manifest.py` | Parse JSONC, merge contributions, and write plain JSON |
 
-Backend and Streaming are shared services in the composition object. They do not
-produce view or command declarations themselves. System controls their runtime
-lifetime; see [Architecture](vscode.md#component-ownership).
+The composition object contains `catalog`, `project`, `backend`, `streaming`,
+`layout`, and `commands`. Containers and editor views belong to Layout; there are
+no separate top-level `views` or `panels` registries.
 
-## Add a Sidebar View
+## Add a Native View
 
-Create `src/atlas/views/projects.ts`:
+Place the class in the relevant directory under `src/atlas/views/`: `left`,
+`right`, or `bottom`. Use one class per snake_case file. A simple native tree
+extends `View`, calls `super(id, title, visibility?)`, and overrides
+`getChildren(element?)`. The base supplies registration, refresh, and disposal.
+VS Code-required member names retain the API's spelling.
 
-```ts
-import type * as vscode from 'vscode';
-import { View } from './view';
+Add the instance to its region's composition. `Left` and `Right` are containers;
+`Bottom` composes panel containers so its views appear as bottom tabs. The
+manifest reader emits each container's own views. A new view inside an existing
+container does not require another container declaration.
 
-export class Projects extends View {
-    constructor() {
-        super('atlas-engine.projects', 'Projects', 'atlas-engine', 'No projects yet.');
-    }
+For editable case sections, follow the existing left views rather than adding
+field metadata to CaseProject. `ProjectView` provides shared editing behavior,
+and `EntryView` provides collection operations. Each concrete section owns its
+fields and action handling. `Left.execute()` routes actions by section. New case
+concepts also require corresponding model types, validation, conversion, and
+runtime support; a view declaration alone does not implement engine behavior.
 
-    getChildren(): vscode.TreeItem[] {
-        return [];
-    }
-}
-```
-
-Import Projects in `contributions.ts` and add `new Projects()` to `views`, alongside
-the existing CASE and section views. Its container ID must exist in `containers`. A new view in the
-existing container does not require another container declaration.
-
-The parent View supplies registration, default `getTreeItem()`, refresh events,
-and disposal. Return tree content from `getChildren()`. Use `this.api` only after
-initialization, never in the constructor. The optional welcome text appears when
-the tree is empty.
-
-After regeneration and rebuilding, reload the development window. Projects is an
-example, not a currently registered view.
+Preserve the current ownership: SOLVERS configures the solver, OUTPUT owns
+observer settings and exports, and Simulation owns execution controls.
 
 ## Add a Command
 
-Create a class extending `Command` in its own snake_case file. Call
-`super(id, title)` in its constructor and implement `execute(api, ...args)` using
-the injected API. Add its instance to `createContributions().commands`.
+Extend `Command` in `src/atlas/commands/`, call `super(id, title)`, and implement
+`execute(api, ...args)`. Inject the existing services it needs and add the instance
+to `createContributions().commands`. System registers the handler and updates the
+layout after successful execution. Do not duplicate registrations in
+`extension.ts` or generated JSON.
 
-System registers the handler and refreshes components after successful execution.
-There is no need to add a separate handler in `extension.ts` or manually duplicate
-the command in JSON. Preserve published command IDs unless a rename is requested.
+The registered explicit commands select/check the backend, show the layout, and
+edit the project. Simulation's open command is generated from its editor view.
+Preserve public command and view IDs unless changing them is part of the task.
 
-For simulation actions, pass the existing Streaming instance into the new command.
-To share it in the composition function, assign `new Streaming(backend)` to a local
-variable and use that variable for both the `streaming` property and the command's
-constructor argument. Do not create an independent session controller per action.
+## Add an Editor View
 
-## Add an Editor Panel
+Place the class under `views/center/` and compose it in `Center`. `EditorView` is
+the shared Webview lifecycle base; `SimulationView` specializes it for the current
+simulation and `Scene` supplies the concrete view metadata. There is no current
+`src/atlas/panels/` implementation.
 
-Create `src/atlas/panels/inspector.ts`:
+The generator emits an opening command for each center view. System initializes
+editor views with the live VS Code API and extension URI. Opening creates or
+reveals one tab; closing releases that tab's subscriptions. Updates send data to
+a ready, visible webview rather than replacing its HTML on every snapshot.
 
-```ts
-import { Panel } from './panel';
-
-export class Inspector extends Panel {
-    constructor() {
-        super('atlas-engine.inspector', 'Inspector');
-    }
-
-    protected render(): string {
-        return '<!DOCTYPE html><html><body><h1>Inspector</h1></body></html>';
-    }
-}
-```
-
-Import Inspector and add `new Inspector()` to `panels`. The generator emits the
-`atlas-engine.inspector.open` command, and System registers it to open the panel.
-Read the parent's getter as `panel.command_id`, without parentheses.
-
-| Operation | Behavior |
-| --- | --- |
-| Constructor | Store metadata without opening a tab |
-| Open command | Call `show(api)` followed by System update |
-| `show(api)` | Reveal the existing tab or create one in the first editor column |
-| `render(webview)` | Return HTML synchronously; the argument can provide resource URIs |
-| `update()` | Refresh only an open tab, assigning HTML only if changed |
-| User closes tab | Release the handle and close subscription; keep the Panel instance |
-| Disposal | Release subscriptions and close the tab |
-
-Panels do not produce sidebar `views` declarations. The current `panels` array is
-empty; Inspector is only an example. The base class does not enable Webview scripts
-or implement message handling.
+Browser code and styles belong in `src/atlas/views/center/webview/`. If a new editor needs its
+own browser entry, update `esbuild.js` and its local resource handling. Keep
+browser code independent of Node.js and the live `vscode` module. Use the existing
+nonce-based CSP, message validation, and lifecycle conventions.
 
 ## Constructor and Import Constraints
 
-Extraction executes code: the reader bundles the composition module in memory,
-evaluates it in ordinary Node.js, and calls `createContributions()`. Reachable
-module-level code, constructors, field initializers, and metadata getters run
-during this process.
+The reader executes reachable imports, constructors, field initializers, and
+metadata getters in ordinary Node.js when it calls `createContributions()`.
+These paths must be free of live VS Code calls, runtime asset reads, UI
+registration, file mutations, external processes, and network activity.
 
-Keep these paths free of live VS Code calls, runtime asset reads, UI registration,
-file changes, and external process or network activity. Backend connection work
-belongs to runtime operations. The generator does not create System or call
-command `execute()`, panel `show()`, or panel `render()`.
-
-Use `import type` for VS Code types in modules reachable from composition. The live
-API enters through `extension.ts`, then System passes it into initialization and
-command/panel operations. Ordinary Node.js cannot supply the `vscode` runtime.
+Use `import type` for VS Code types reachable from composition. The live API
+enters through `extension.ts` and is injected during initialization. Runtime
+Python files are loaded when opening a backend connection, not during metadata
+extraction. The reader does not initialize System or open editor tabs.
 
 ## Generation and Watch
 
-Python 3, Node.js, and installed development dependencies such as esbuild are
-required. To generate only the manifest:
+Python 3, Node.js, and installed npm dependencies are required:
 
 ```bash
 npm run manifest
-```
-
-If the generated npm alias is missing or stale, invoke the script directly:
-
-```bash
+# Equivalent direct entry point when the generated npm alias is stale:
 python3 scripts/generate_manifest.py
 ```
 
-The development launcher, compile/package commands, and every esbuild build start
-invoke generation. Changes to watched TypeScript sources trigger rebuilding;
-JSONC-only changes do not trigger watch. Generate manually after JSONC changes,
-and regenerate before invoking an npm alias you just changed. Reload VS Code to
-apply updated UI declarations.
+The launcher, compile/package scripts, and esbuild build-start hook invoke
+generation. Watched TypeScript edits cause rebuilds, but JSONC-only edits do not
+trigger watch: generate explicitly after changing configuration. Reload the
+development window to load new contribution declarations.
 
-The generator reads `config/package.jsonc` first, then other JSONC files recursively
-in sorted order. It supports line comments, block comments, and trailing commas;
-output is plain JSON. Objects merge recursively and arrays concatenate. Conflicting
-scalar settings, duplicate JSON keys, invalid component IDs, duplicate IDs within
-the checked categories, and missing container references are errors. Panel-opening
-commands participate in the command ID uniqueness check.
+The generator reads `config/package.jsonc` first and other JSONC files recursively
+in sorted order. It supports comments and trailing commas. Objects merge
+recursively and arrays concatenate; conflicting scalar fields, duplicate JSON
+keys, and non-finite JSON numbers are rejected. The reader checks nonempty,
+unique IDs for containers, views, and commands, including editor-opening commands,
+and rejects unsupported container locations.
 
-The generator writes package.json only after extraction and merging succeed, and
-only if its content changes. For dependency updates, edit
-`config/dependencies.jsonc`, regenerate, then run `npm install` to update the
-lockfile. npm edits are not automatically copied back into JSONC sources.
+`package.json` is written only after successful extraction and merging, and only
+when its content changes. For dependency changes, edit JSONC, regenerate, then
+update `package-lock.json` with npm. npm edits are not copied back to JSONC.
+`npm run package` builds production assets; it does not create or publish a VSIX.
+
+See [Development workflow](development.md) for commands and the explicit-request
+rule governing agent execution.

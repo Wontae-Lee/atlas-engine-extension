@@ -52,17 +52,25 @@ manifest, runs type checking and lint, builds the bundle, opens an isolated
 VS Code development window, and starts the TypeScript/esbuild watchers.
 A failed initial build prevents the window from opening.
 
-1. Click the ATLAS logo in the development window's activity bar.
-2. Expand CASE to see the Overview and Domain placeholders.
-3. Expand the other sidebar sections; no editor tab or HTML window is opened.
-4. Inspect `atlas-engine-backend` in the status bar and its Output channel for
-   the separate backend connection result.
+1. Inspect the left ATLAS sections: DOMAIN, ASSETS, MATERIALS, GEOMETRY,
+   SOURCES, BOUNDARIES, SINKS, SOLVERS, and OUTPUT.
+2. Wait for `atlas-engine-backend` to report a ready connection.
+3. Inspect the central **Simulation** tab, right **SIMULATION STATUS** view,
+   and bottom **SIMULATION LOG** tab. **Atlas Engine: Show Layout** restores them.
+4. In Simulation, choose **Apply**, then **Step** or **Start**. Startup itself
+   does not apply the case or advance the engine.
+5. Use **Pause** before changing the applied configuration. **Reset** recreates
+   the last applied configuration; it does not restore sidebar defaults.
 
-The sidebar contains CASE, ASSETS, MATERIALS, GEOMETRY, SOURCES, BOUNDARIES, SINKS,
-SOLVERS, and OUTPUT in that order. These are UI shells without sample objects,
-file operations, configuration fields, or simulation controls. Hello World remains
-available through the command palette. The launcher does not click commands or
-verify their results automatically.
+A fresh workspace starts with nitrogen, a sphere collider of radius 0.5 at the
+origin, and a source on the negative-X face emitting toward positive X. The
+Domain is `[-1, -1, -1]` to `[1, 1, 1]`; particles outside it are removed
+automatically. Saved workspace settings take precedence over this initial case.
+
+Configuration belongs to the left sidebar. Execution controls belong to
+Simulation, snapshot statistics to the right sidebar, and CSV export to OUTPUT.
+The launcher does not exercise these features automatically. For the user-facing
+walkthrough, see the [root README](../README.md).
 
 Startup activation connects to the saved backend, or TBB on first use. It can
 download a missing image. An activation log does not mean this asynchronous
@@ -85,6 +93,7 @@ TypeScript watcher. ESLint runs during the initial compile, not continuously.
 
 Source rebuilds regenerate the manifest. Changes only to `config/*.jsonc` require
 manual generation; see [Manifest generation](manifest.md#generation-and-watch).
+Changes to `esbuild.js` require restarting the watcher. Browser CSS and
 Python runtime edits trigger an esbuild rebuild and are copied to `dist/runtime/`.
 Reload the development window so a new container loads the updated runtime.
 
@@ -116,8 +125,8 @@ Create an **Attach to Node.js/Chrome** run configuration in CLion:
 | Port | `9230` |
 | Reconnect automatically | Enable if available |
 
-Set a breakpoint in `src/atlas/commands/hello_world.ts`, attach the debugger, then
-execute Hello World in the development window. Inspect variables and the call
+Set a breakpoint in `src/atlas/commands/show_layout.ts`, attach the debugger, then
+execute **Atlas Engine: Show Layout** in the development window. Inspect variables and the call
 stack when execution stops.
 
 To stop before activation, use:
@@ -175,7 +184,13 @@ the manifest's supported version range.
 
 | Test source | Coverage implemented in source |
 | --- | --- |
-| `test/extension.test.ts` | Activation, Hello World execution, backend command declarations |
+| `test/extension.test.ts` | Activation and current command declarations |
+| `test/catalog.test.ts` | Molecular catalog records and model-specific presets |
+| `test/project.test.ts`, `test/nitrogen_sphere_case.test.ts` | Case validation, persistence, scene conversion, and initial nitrogen case |
+| `test/view_ownership.test.ts` | Sidebar field and dependency ownership |
+| `test/simulation_controls.test.ts` | Apply and execution-control guards |
+| `test/editor_view.test.ts` | Webview readiness, updates, close, and reopening |
+| `test/scene_geometry.test.ts` | Preview geometry and OBJ parsing |
 | `test/backend.test.ts` | Backend selection, consent, replacement, cancellation, and connection notifications using substitutes |
 | `test/docker.test.ts` | Process and JSON transport failures, cancellation, and owned-container cleanup using a temporary executable |
 | `test/streaming.test.ts` | Session operations, ordered requests, pause/resume, invalid responses, and stale-result rejection using substitute connections |
@@ -191,15 +206,15 @@ For Linux environments without a display, if Xvfb is installed:
 xvfb-run -a npm test
 ```
 
-The sidebar-only UI passed manifest generation, type checking, lint, and bundling.
-No test suite or real Docker/simulation validation was run for this update; a
-successful build does not verify engine execution or visual behavior.
+The table describes test source coverage, not a current execution result. Record
+commands actually run and their results for each change. A successful build or
+substitute-based test does not verify visual behavior or native engine execution.
 
 ## Troubleshooting
 
 | Symptom | Check |
 | --- | --- |
-| Hello World is missing | Development window, successful build, supported VS Code version, generated manifest |
+| Atlas commands are missing | Development window, successful build, supported VS Code version, generated manifest |
 | Old behavior remains | Save, wait for build completion, then reload the development window |
 | Cannot find module `vscode` | Use the Extension Host, not ordinary Node.js |
 | VS Code CLI is missing | PATH or `VSCODE_BIN` |
@@ -214,12 +229,6 @@ does not identify the originating package. Inspect **Log (Extension Host)** or
 **Developer: Toggle Developer Tools** and obtain the warning stack before
 assigning a cause. Apply `--trace-deprecation` to the process emitting the warning;
 setting it only on the watcher does not trace a separate Extension Host.
-
-The project's activation message is:
-
-```text
-Congratulations, your extension "atlas-engine" is now active!
-```
 
 ## Command Reference
 

@@ -7,13 +7,14 @@ and the documents relevant to the requested change before editing code.
 
 | Task | Documentation |
 | --- | --- |
-| Find project documentation | [Documentation index](docs/README.md) |
-| Follow naming, class, helper, and comment conventions | [Coding style](docs/guidelines/coding-style.md) |
-| Set up development, launch the extension, debug, or run checks | [Development workflow](docs/development.md) |
-| Understand activation, System lifecycle, and source layout | [Extension architecture](docs/vscode.md) |
-| Register views, commands, or panels and generate package.json | [Manifest generation](docs/manifest.md) |
+| Help users install from source and operate the UI | [User guide](README.md) |
+| Find development documentation | [Documentation index](docs/README.md) |
+| Follow naming, class, helper, and comment conventions | [Coding style](docs/coding-style.md) |
+| Launch from CLion, reload, debug, or run checks | [Development workflow](docs/development.md) |
+| Understand System, view ownership, saved cases, and the catalog | [Extension architecture](docs/vscode.md) |
+| Register views/commands and generate package.json | [Manifest generation](docs/manifest.md) |
 | Work on Docker lifecycle, connections, or TBB/CUDA selection | [Backend](docs/backend.md) |
-| Control the engine and exchange simulation state and results | [Streaming](docs/streaming.md) |
+| Control engine sessions, scene data, snapshots, and output | [Streaming](docs/streaming.md) |
 | Record implemented changes | [Changelog](docs/CHANGELOG.md) |
 
 ## Essential Development Rules

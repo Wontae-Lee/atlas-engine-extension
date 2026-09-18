@@ -1,147 +1,172 @@
 # Extension Architecture
 
-`src/extension.ts` creates the extension's `System` and calls `system.update()`.
-System owns registration, command execution, refresh order, and disposal.
-Components implement their own behavior through classes; the composition function
-in `src/atlas/contributions.ts` creates their instances.
+`src/extension.ts` creates `System` and calls `system.update()`. System owns
+initialization, subscriptions, refresh order, command registration, and disposal.
+`createContributions()` in `src/atlas/contributions.ts` composes the shared
+instances used by both the runtime and manifest extraction.
 
-## Runtime and Manifest
-
-VS Code reads the generated `package.json` to discover the extension's entry point
-and UI contributions. It loads `dist/extension.js` in the Extension Host, where
-the `vscode` runtime API is available. TypeScript sources are build inputs, not
-the files VS Code executes.
-
-The current manifest requests startup activation with `onStartupFinished`.
-Activation creates System, registers it in `context.subscriptions`, and calls
-its first update. Backend connection work continues asynchronously.
-
-```ts
-import * as vscode from 'vscode';
-import { System } from './atlas/system/system';
-
-export function activate(context: vscode.ExtensionContext) {
-    const system = new System(vscode, undefined, context.globalState);
-    context.subscriptions.push(system);
-    system.update();
-}
-
-export function deactivate() {}
-```
-
-The registered System is disposed through the extension context. JavaScript
-garbage collection does not call `dispose()` automatically.
-
-Metadata declares that a command or view exists; runtime registration supplies
-its behavior. Both must use the same ID. This repository generates metadata from
-component instances and lets System register those same declarations at runtime.
-See [Manifest generation](manifest.md) for the extension points and examples.
-
-## Component Ownership
+## Composition and lifecycle
 
 ```text
 System
-├── Backend       Docker selection, preparation, and connection lifetime
-├── Streaming     Simulation session, requests, and result subscriptions
-├── View[]        CASE placeholders and eight empty SectionView instances
-├── Command[]     HelloWorld, SelectBackend, CheckBackend
-└── Panel[]       Empty; no editor windows are registered
+├── MoleculeCatalog
+├── CaseProject → AssetStore
+├── Backend → Docker connection
+├── Streaming → the Backend connection
+├── Layout
+│   ├── Left: Domain, Assets, Materials, Geometry, Sources, Boundaries, Sinks, Solvers, Output
+│   ├── Center: Scene → SimulationView → EditorView
+│   ├── Right: SimulationStatus
+│   └── Bottom: Logs, wrapped by PanelContainer
+└── Commands: SelectBackend, CheckBackend, ShowLayout, EditProject
 ```
 
-`createContributions()` creates one Backend and one Streaming using that Backend.
-Future simulation commands or panels should receive this same Streaming instance
-through their constructors. Backend does not own simulation configuration or
-particle state; Streaming does not install images or select Docker modes.
+Activation passes `context.globalState`, `context.workspaceState`, and
+`context.extensionUri` into System. Global state remembers the backend mode;
+workspace state stores the case; the extension URI locates bundled Webview files.
+VS Code loads `dist/extension.js`, not the TypeScript source.
 
-System's constructor initializes backend UI and views, then registers command
-callbacks and panel-opening callbacks. Each successful command completion calls
-`update()`. Panel-opening callbacks call `show(api)` and then `update()`.
+System initializes the project, backend UI, and layout, then subscribes to project
+and Streaming changes. Its first update starts backend preparation and opens the
+layout. It does not automatically Apply or Start a simulation. Later updates
+refresh existing views without reopening a closed Simulation tab. **Show Layout**
+or **Open Simulation** can reopen it.
 
-`update()` calls Backend, views, then panels. Backend begins its startup connection
-only once. Views request a tree refresh; panels refresh only existing tabs.
-Updates do not register components again or start a System timer. Repeated
-simulation requests start only through an explicit `Streaming.start()` call.
+Project changes refresh the layout. Streaming state/snapshot events refresh
+OUTPUT, the right sidebar, and the center views. Logs subscribes directly to
+Streaming. File watchers for `**/assets/geometry/**` and workspace-folder changes
+invalidate project asset state and the applied revision.
 
-Disposal stops Backend first, then Streaming, then releases command registration
-handles, panels, commands, and views. Backend-first disposal announces connection
-loss before remaining simulation resources are released.
+Disposal stops Backend, then Streaming, then CaseProject, subscriptions, command
+handlers, and Layout. Late Webview reads cannot write into closed/replaced panels.
 
-## Source Map
+## UI ownership and dependency direction
+
+| Owner | Responsibility |
+| --- | --- |
+| `views/left/*.ts` | Section field/type definitions, native tree content, and editing actions |
+| `ProjectView` | Shared field rendering, reference labels, and input handling |
+| `EntryView` | Shared collection add/edit/rename/remove behavior |
+| `Left.execute()` | Find the owning section and forward an action |
+| `EditProject` | Command-palette entry and sidebar action dispatch/error display |
+| `SimulationView` | Central Apply/Start/Pause/Step/Reset operations and Webview toolbar |
+| `Scene` | Scene data, asset delivery, and particle preview |
+| `Output` | Observer settings and manual snapshot CSV exports |
+| `SimulationStatus` | Full-snapshot statistics and recent snapshot history |
+| `Logs` | State/error/progress event history |
+
+```mermaid
+flowchart LR
+    EditProject --> Left
+    Left --> Section[Concrete left View]
+    Section --> CaseProject
+    Scene --> SimulationView
+    SimulationView --> CaseProject
+    SimulationView --> Streaming
+    Output --> Streaming
+    SimulationStatus --> Streaming
+    Logs --> Streaming
+    CaseProject --> Validation[Model validation]
+    CaseProject --> AssetStore
+    CaseProject --> MoleculeCatalog
+```
+
+SOLVERS contains settings only and has no Streaming dependency. The central
+execution controls call Streaming directly through SimulationView, not through
+a sidebar action. OUTPUT receives Streaming to export the current snapshot.
+Project state and validation do not import UI field definitions. There is no
+central `ProjectEditor`, `project_fields.ts`, or `geometry_fields.ts` registry.
+
+## Case state and assets
+
+`CaseProject` owns `ProjectState`, validated edits, workspace persistence, and
+conversion to `SimulationConfig`. `change()` serializes edits, validates the
+candidate, saves it, then advances the revision and notifies listeners.
+`get_state()` returns a clone. `mark_applied(revision)` records successful engine
+application and refreshes consumers without changing the settings revision.
+
+State is stored under `atlas-engine.project.v1` in the VS Code workspace Memento.
+There is no case file reader/writer for `atlas.jsonc`. An explicitly supplied
+initial state is supported for tests; otherwise `default_state()` creates the
+nitrogen case described in the [user guide](../README.md#run-your-first-simulation).
+Saved nonempty cases are preserved. Legacy empty state is upgraded; an initialized
+case intentionally cleared by the user stays empty. Legacy default escape-box
+entries are removed only when they match the automatic Domain removal setup.
+There is no separate nitrogen-preset module or load-preset command.
+
+AssetStore copies imported OBJ files into a selected workspace's
+`assets/geometry/`, avoids filename collisions, and stores a relative path plus
+workspace URI. Replacing an asset updates the file after confirmation. Removing
+an asset record leaves its disk file in place; validation prevents dangling case
+references. Only referenced OBJ contents are sent to the engine as text. The
+container does not mount the workspace. MTL/textures and external-file linking
+are not implemented.
+
+## Molecular catalog
+
+`catalog/molecule_catalog.ts` loads the bundled PICLas VHS, SPARTA, and Weaver VSS
+JSON datasets. `catalog/data/sources.json` records attribution and source links;
+`metadata.json` records units and limitations. Catalog queries return copies.
+
+MATERIALS filters catalog selection by the solver's VHS/VSS model and copies the
+selected parameters into editable material records. It shows attribution, fit
+ranges when provided, customizations, and model mismatch. Changing the solver
+model does not silently convert existing materials. Engine application requires
+matching models; VHS requires alpha = 1. Some species have no VSS preset.
+
+These are neutral-species reference elastic-collision parameters, not chemistry,
+ionization, or internal-energy-relaxation models. Refer to the bundled metadata
+when changing catalog behavior or describing its physical scope.
+
+## Simulation Webview
+
+EditorView creates a single WebviewPanel on demand and restricts local resources
+to `dist/webview`. SimulationView supplies a nonce-based script policy, HTML,
+and validated execution-message handling. No CDN or external browser package
+is required.
+
+`render()` supplies the initial document. After the browser sends `ready`,
+`update()` posts data messages instead of replacing HTML. Reads are coalesced;
+hidden views defer delivery; closed-panel results are discarded. Scene sends
+asset contents until the browser acknowledges the project revision, then reuses
+the client cache. A new browser context requests a fresh delivery.
+
+`webview/scene_renderer.ts` draws projected 3D wireframes and particles with
+Canvas 2D. `detail/scene_geometry.ts` supplies primitive/OBJ geometry and Euler XYZ
+transforms. Camera controls include orbit, pan, zoom, Fit, and axis presets.
+Geometry is the configured initial pose; dynamic collider transforms are not
+part of the engine snapshot. Infinite planes use finite dashed previews.
+
+Display sampling caps particle arrays at 20,000; the wire preview caps OBJ input
+at 500,000 vertices/250,000 triangles and polygonal prisms at 4,096 sides. Preview
+errors are displayed rather than silently substituting a shape. These display
+limits do not truncate statistics, CSV exports, or the engine's full snapshots.
+Editing the case hides previously applied particles until the new case is applied.
+
+Right-side history keeps up to 300 snapshots. SIMULATION LOG keeps up to 300
+events and limits continuous-run progress records to about one per second.
+These histories are in-memory and do not constitute saved run results.
+
+## Source and build map
 
 | Path | Responsibility |
 | --- | --- |
-| `src/extension.ts` | Live VS Code import and activation entry point |
-| `src/atlas/contributions.ts` | Component composition and metadata instances |
-| `src/atlas/system/system.ts` | Registration, execution, refresh, and disposal order |
-| `src/atlas/backend/` | Docker backend controller, transport implementation, and contracts |
-| `src/atlas/streaming/` | Engine control and simulation data contracts |
-| `src/atlas/streaming/runtime/` | Python server and persistent Atlas session inside the container |
-| `src/atlas/views/` | Tree View base, CASE placeholders, and empty sidebar sections |
-| `src/atlas/commands/` | Command base class and executable actions |
-| `src/atlas/panels/` | Unused editor Webview Panel base |
-| `src/atlas/detail/` | Internal implementations used by any component area |
-| `src/atlas/detail/private_helpers.ts` | Single location for repeated internal helper functions |
-| `config/*.jsonc` | Project metadata, npm scripts, and dependencies |
-| `scripts/` | Development launcher and manifest extraction/merging |
-| `test/` | Backend, transport, Streaming, and extension tests |
-| `test/helpers/` | Substitute implementations, one class per file |
-| `media/` | Extension image assets |
+| `src/extension.ts`, `src/atlas/system/` | Activation and orchestration |
+| `src/atlas/contributions.ts` | Shared instance composition |
+| `src/atlas/project/` | Saved case model and asset storage |
+| `src/atlas/catalog/` | Molecular presets and provenance |
+| `src/atlas/views/{left,right,bottom,center}/` | Region-owned UI behavior |
+| `src/atlas/views/center/webview/` | Browser entry, renderer, message client, CSS |
+| `src/atlas/commands/` | Registered palette/sidebar commands |
+| `src/atlas/backend/` | Docker lifecycle contracts and controller |
+| `src/atlas/streaming/` | Engine session middleware and wire types |
+| `src/atlas/streaming/runtime/` | Python EngineServer, EngineSession, EngineScene |
+| `src/atlas/detail/` | Internal implementations shared across areas |
+| `config/`, `scripts/` | JSONC metadata, manifest extraction, development launcher |
+| `test/` | Test sources and injected substitutes |
 
-`detail` is shared across component areas, not reserved for Backend. Keep stateful
-classes in separate snake_case files and common functions in `private_helpers.ts`.
-Do not introduce a parallel `helpers.ts` or `src/atlas/private_helpers.ts` for the
-same purpose. Follow [Coding style](guidelines/coding-style.md) for naming and
-extraction decisions.
-
-## UI Boundaries
-
-The ATLAS container has CASE, ASSETS, MATERIALS, GEOMETRY, SOURCES, BOUNDARIES,
-SINKS, SOLVERS, and OUTPUT sections. Overview provides the Overview
-and Domain placeholders within CASE. Other sections use empty SectionView
-instances. There are no open commands or welcome buttons for these sections. `View.initialize()`
-registers its provider, `getChildren()` provides items, and `update()` fires the
-change event. Preserve VS Code-required method names such as `getChildren()` and
-`getTreeItem()` even though project-owned members use snake_case.
-
-An editor `Panel` is separate from a sidebar `View`. Panel instances store metadata
-at construction; their open commands create or reveal a Webview tab. `render()`
-returns HTML synchronously and `update()` replaces it only when changed. Closing
-the tab leaves the component instance available for reopening.
-
-The current Panel base uses empty Webview options and has no script messaging
-implementation. Adding HTML containing JavaScript alone does not provide an
-interactive simulation UI. No panels are registered. The current UI consists only of sidebar sections
-without sample entities, file operations, or simulation controls.
-
-Backend uses its own status bar, selection prompts, progress notifications, and
-Output channel. See [Backend](backend.md) for selection and connection behavior.
-Streaming emits state and snapshot notifications without calling the VS Code UI
-API; the consuming command, view, or panel determines how to present them.
-
-## Build and Distribution
-
-```text
-config/*.jsonc + src/atlas/contributions.ts
-    → scripts/generate_manifest.py → package.json
-src/extension.ts and imports
-    → tsc --noEmit → ESLint → esbuild → dist/extension.js
-streaming/runtime/*.py
-    → esbuild asset copy → dist/runtime/*.py
-package.json main
-    → VS Code Extension Host
-```
-
-TypeScript checks types; esbuild creates the JavaScript bundle. `vscode` is
-external to the bundle because the host supplies it. Development builds include
-`dist/extension.js.map`; production builds are minified without source maps.
-The Python runtime assets must accompany both builds.
-
-`package.json` is tracked generated output. Edit its JSONC or TypeScript sources
-and regenerate it when execution is authorized. Constructors and reachable module
-initializers used during manifest extraction must not call live VS Code APIs,
-read runtime assets, register UI, or start external work. Details are in
-[Manifest generation](manifest.md#constructor-and-import-constraints).
-
-For launch, reload, debugging, and test procedures, use
-[Development workflow](development.md). For engine requests and result lifetime,
-use [Streaming](streaming.md).
+Build outputs are `dist/extension.js`, `dist/webview/scene.js`,
+`dist/webview/simulation.css`, and three Python files under `dist/runtime/`.
+Development builds include source maps. The Node and browser bundles are separate;
+only the Extension Host imports live `vscode`. See [manifest generation](manifest.md)
+and [development workflow](development.md) before changing these entry points.

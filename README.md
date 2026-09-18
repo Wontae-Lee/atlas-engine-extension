@@ -1,75 +1,115 @@
-# atlas-engine README
+# Atlas Engine for VS Code
 
-CLion에서 개발하려면 [개발·실행·디버깅 가이드](docs/development.md)를 참고하세요.
-확장의 manifest, 생명주기와 코드 구성은 [VS Code 확장 구조](docs/vscode.md)에 정리되어 있습니다.
-프로젝트 루트에서 `npm run dev`로 개발용 VS Code와 자동 빌드를 시작할 수 있습니다.
+Configure and visualize DSMC simulations from VS Code, using an Atlas Engine
+backend running in Docker. Start with the built-in nitrogen case, edit your
+geometry and materials, and watch particle positions as the engine advances.
 
-This is the README for your extension "atlas-engine". After writing up a brief description, we recommend including the following sections.
+## Start from source
 
-## Features
+You need:
 
-Describe specific features of your extension including screenshots of your extension in action. Image paths are relative to this README file.
+- VS Code compatible with the repository's declared requirement, `^1.138.0`.
+- Node.js and npm compatible with the locked development dependencies; Node.js
+  24 satisfies the current ESLint runtime requirement.
+- Python 3 for the development launcher and manifest generator.
+- Docker CLI access to a running **Linux x86-64 Docker server** for simulations.
 
-For example if there is an image subfolder under your extension project workspace:
+From the repository directory:
 
-\!\[feature X\]\(images/feature-x.png\)
+```bash
+npm ci
+npm run dev
+```
 
-> Tip: Many popular extensions utilize animations. This is an excellent way to show off your extension! We recommend short, focused animations that are easy to follow.
+The launcher builds the extension, opens an isolated VS Code development window,
+and watches for changes. Its settings and scratch workspace are kept in
+`.vscode-dev/`. The extension opens the Atlas layout and starts preparing the
+backend. On first use it selects **TBB (CPU)** and downloads the image if needed.
+Opening the UI does not start a simulation.
 
-## Requirements
+If the layout is hidden, open the Command Palette and run
+**Atlas Engine: Show Layout**. For CLion setup, debugging, or a custom VS Code
+executable, see the [development guide](docs/development.md).
 
-If you have any requirements or dependencies, add a section describing those and how to install and configure them.
+## Run your first simulation
 
-## Extension Settings
+1. Wait for `atlas-engine-backend` in the status bar to report Ready.
+2. Inspect the initial case in the ATLAS sidebar.
+3. In the central **Simulation** tab, click **Apply to Engine**.
+4. Click **Step** to advance once, or **Start** to run continuously.
+5. Click **Pause** to stop advancing. Use **Reset** to return the applied case
+   to step zero.
 
-Include if your extension adds any VS Code settings through the `contributes.configuration` extension point.
+The initial case uses nitrogen (N₂, VHS), a sphere collider centered at `(0, 0, 0)`
+with radius `0.5 m`, and a square inlet at `x = -1 m` emitting toward positive X.
+The domain runs from `(-1, -1, -1)` to `(1, 1, 1)` metres. Particles outside the
+Domain are removed automatically; there is no switch to enable that behavior.
 
-For example:
+Editing a case changes its saved settings. **Pause, then Apply to Engine** to
+replace the running configuration with those changes. Replacing an existing
+simulation asks for confirmation. Reset restores the applied initial
+configuration; it does not restore the sidebar's default nitrogen settings.
 
-This extension contributes the following settings:
+## Where things live
 
-* `myExtension.enable`: Enable/disable this extension.
-* `myExtension.thing`: Set to `blah` to do something.
+| Area | What to do there |
+| --- | --- |
+| Left: DOMAIN | Set bounds and cell size |
+| Left: ASSETS | Import and manage OBJ files |
+| Left: MATERIALS | Choose VHS/VSS catalog presets and edit material properties |
+| Left: GEOMETRY, SOURCES, BOUNDARIES, SINKS | Build the simulation case |
+| Left: SOLVERS | Edit DSMC solver settings |
+| Left: OUTPUT | Configure the observer and export snapshot CSV files |
+| Center: Simulation | View geometry and particles; Apply, Start, Pause, Step, Reset |
+| Right: SIMULATION STATUS | Inspect state, counts, speeds, species, and recent snapshots |
+| Bottom: SIMULATION LOG | Read simulation state changes, progress, and errors |
+| Status bar: atlas-engine-backend | Choose or check the Docker backend |
 
-## Known Issues
+In the Simulation canvas, drag to orbit, Shift-drag or right-drag to pan, and
+scroll to zoom. **Fit** and the camera selector help frame the scene. The
+Domain, Geometry, and Particles checkboxes control visibility.
 
-Calling out known issues can help limit users opening duplicate issues against your extension.
+## Meshes, saved settings, and output
 
-## Release Notes
+**ASSETS → Import Mesh Asset** copies an OBJ into the chosen workspace's
+`assets/geometry/` directory. A Geometry item can then reference that asset.
+Importing a file alone does not create a simulation object. Sphere, Box, and
+other built-in shapes do not need an asset file.
 
-Users appreciate release notes as you update your extension.
+Case settings are saved in VS Code's workspace state. There is currently no
+`atlas.jsonc` project-file import/export workflow. OBJ records use a relative
+asset path plus the owning workspace URI; moving or cloning a folder does not
+by itself transfer the saved case settings.
 
-### 1.0.0
+Under **OUTPUT**:
 
-Initial release of ...
+- **Export Particle Snapshot CSV** saves positions, velocities, and species for
+  the last received snapshot to a location you choose.
+- **Export Snapshot Statistics CSV** saves totals, mean/RMS speed, and species
+  counts for that snapshot.
+- **CSV observer** settings control engine-side output inside the Docker
+  container. These files are separate from manual exports and are removed with
+  the container; there is no automatic download of observer output.
 
-### 1.0.1
+## CPU and CUDA
 
-Fixed issue #.
+TBB works without an NVIDIA GPU. To use CUDA, click `atlas-engine-backend` and
+select **CUDA**. The extension checks GPU access through Docker before asking to
+download a missing CUDA image. It does not install drivers or NVIDIA Container
+Toolkit. See [backend setup and troubleshooting](docs/backend.md).
 
-### 1.1.0
+## Current limits
 
-Added features X, Y, and Z.
+- Geometry is a wireframe preview of the configured **initial pose**. Moving
+  collider poses are not streamed to the canvas; particle positions are live.
+- The canvas displays at most 20,000 sampled particles. Statistics and manual
+  CSV exports use the full received snapshot.
+- OBJ preview supports up to 500,000 vertices and 250,000 triangles; it does not
+  import MTL files or textures.
+- Catalog entries are reference parameter sets. VHS and VSS availability varies
+  by species; the catalog does not provide chemistry or internal-energy
+  relaxation models.
 
----
-
-## Following extension guidelines
-
-Ensure that you've read through the extensions guidelines and follow the best practices for creating your extension.
-
-* [Extension Guidelines](https://code.visualstudio.com/api/references/extension-guidelines)
-
-## Working with Markdown
-
-You can author your README using Visual Studio Code. Here are some useful editor keyboard shortcuts:
-
-* Split the editor (`Cmd+\` on macOS or `Ctrl+\` on Windows and Linux).
-* Toggle preview (`Shift+Cmd+V` on macOS or `Shift+Ctrl+V` on Windows and Linux).
-* Press `Ctrl+Space` (Windows, Linux, macOS) to see a list of Markdown snippets.
-
-## For more information
-
-* [Visual Studio Code's Markdown Support](http://code.visualstudio.com/docs/languages/markdown)
-* [Markdown Syntax Reference](https://help.github.com/articles/markdown-basics/)
-
-**Enjoy!**
+For implementation details, validation procedures, and contribution rules, use
+[the documentation index](docs/README.md). Implemented features are listed in the
+[changelog](docs/CHANGELOG.md).

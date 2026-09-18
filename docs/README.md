@@ -1,24 +1,24 @@
 # Development Documentation
 
-Use [AGENTS.md](../AGENTS.md) as the repository's development map and essential
-working rules. These documents describe the current source implementation;
-examples are not additional feature requirements.
+For first launch and everyday use, start with the [user guide](../README.md).
+[AGENTS.md](../AGENTS.md) is the development map and essential working rules.
 
 | Task | Document |
 | --- | --- |
-| Launch, debug, reload, and test from CLion | [Development workflow](development.md) |
-| Understand component ownership and source layout | [Extension architecture](vscode.md) |
-| Add views, commands, and panels; generate package.json | [Manifest generation](manifest.md) |
+| Launch, reload, debug from CLion, and choose validation commands | [Development workflow](development.md) |
+| Understand System, component ownership, UI regions, persistence, and catalog data | [Extension architecture](vscode.md) |
+| Register a sidebar or editor view, add a command, and generate metadata | [Manifest generation](manifest.md) |
 | Select TBB/CUDA and maintain Docker connections | [Backend](backend.md) |
-| Initialize and control simulations; receive results | [Streaming](streaming.md) |
-| Follow naming, class, helper, and comment rules | [Coding style](guidelines/coding-style.md) |
+| Build engine configurations, control sessions, and receive/export results | [Streaming](streaming.md) |
+| Follow naming, class, helper, and comment rules | [Coding style](coding-style.md) |
 | Review implemented changes | [Changelog](CHANGELOG.md) |
 
-Start with the development workflow, then read the architecture and the document
-for the component you are changing. Keep implementation details in the relevant
-component document instead of repeating them throughout the documentation.
+The current UI separates responsibilities: the central Simulation Webview owns
+execution controls; the left sidebar owns case editing and output; the right
+sidebar owns status and statistics; the bottom panel records simulation events.
+There is no separate Results editor.
 
-Commands document procedures developers can run. Agents must have an explicit
-request before running builds, tests, benchmarks, simulations, generators, or
-formatters. Test source and historical results are not proof that current changes
-have passed validation.
+These documents describe source behavior, not independent runtime verification.
+Commands are procedures for developers to run. Agents still need an explicit
+request before executing builds, tests, benchmarks, simulations, generators, or
+formatters. See [validation guidance](development.md#checks-and-tests).

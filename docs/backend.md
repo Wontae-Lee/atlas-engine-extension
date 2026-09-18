@@ -104,18 +104,24 @@ mount. Replacement, cancellation, and disposal remove only owned containers.
 Forced termination or an unavailable Docker server can prevent cleanup. Images
 remain cached for reuse.
 
-## Validation Status
+## Runtime Files and Output Ownership
 
-The following are historical records from the original bridge integration, not
-validation of the current Streaming runtime or subsequent refactors:
+The build packages `engine_server.py`, `engine_session.py`, and `engine_scene.py`
+under `dist/runtime/`. The runtime creates scene objects and temporary mesh files
+inside the container. Observer output also stays inside the container; there is
+no host results-directory mount or automatic observer-file download. Manual CSV
+exports in the left OUTPUT section use snapshots received by the extension.
 
-- TBB image download and an example with 8 cells, 200 particles, and 20 steps
-  succeeded, including a request through the original JSON bridge.
-- The then-current `npm test` suite passed 13 tests.
-- Docker GPU preflight on an RTX 4070 failed because of NVIDIA runtime/CDI setup.
-  No CUDA image was downloaded and actual CUDA execution was not verified.
+The backend Output channel reports Docker preparation and connection diagnostics.
+The bottom SIMULATION LOG view reports simulation state and progress. The right
+SIMULATION STATUS view and central Simulation tab consume Streaming state; they
+do not own Docker lifecycle operations.
 
-The sidebar-only UI passed manifest generation, type checking, lint, and bundling.
-Tests, Docker, and simulations have not validated the current runtime replacement.
-Test doubles validate different contracts from a real engine run; see
+## Validation Boundaries
+
+Backend and transport tests use substitutes to exercise connection replacement,
+cancellation, consent, request failures, and cleanup. A real TBB or CUDA run is a
+separate check. Source inspection and a successful type check do not establish
+GPU compatibility, image availability, or native simulation success. Record
+executed checks for the change being validated; see
 [Development workflow](development.md#checks-and-tests).

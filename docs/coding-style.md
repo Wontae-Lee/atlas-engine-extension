@@ -2,7 +2,7 @@
 
 These rules describe how to write and change code in Atlas Engine Extension.
 For source layout and component ownership, see
-[Extension architecture](../vscode.md) and [Streaming](../streaming.md).
+[Extension architecture](vscode.md) and [Streaming](streaming.md).
 
 ## 1. Scope and Readability
 
@@ -62,6 +62,15 @@ For source layout and component ownership, see
   condition.
 - Preserve existing behavior and ownership unless the task requires a change.
 - Avoid unrelated performance or data-layout changes.
+- Keep case state and validation independent of view field definitions. Section
+  views own their editable fields and UI behavior; reusable view bases own only
+  common presentation and input handling.
+- Keep constructors and module initialization reachable from contributions free
+  of live VS Code calls, runtime file reads, processes, and network operations. Pass
+  runtime services and the VS Code API through initialization or constructors
+  according to the component's existing lifecycle.
+- Browser Webview code must not import Node.js or the live VS Code module. Use
+  the validated message boundary to request host operations.
 
 ## 5. Comments
 
