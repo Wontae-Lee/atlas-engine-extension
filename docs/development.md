@@ -3,11 +3,12 @@
 이 프로젝트는 CLion에서 TypeScript를 편집하고, VS Code의 Extension Host에서 실행한다.
 브레이크포인트는 CLion의 Node.js 디버거를 Extension Host에 연결해서 사용한다.
 `src/extension.ts`를 일반 Node.js 프로그램처럼 직접 실행하지 않는다. `vscode` API는 VS Code가 제공한다.
-manifest, 활성화 생명주기와 코드 구성은 [VS Code 확장 구조 이해하기](vscode-extension-architecture.md)를 참고한다.
-뷰·명령·패널은 공통 부모를 상속하고 `src/contributions.ts`에서 인스턴스를 구성한다.
+manifest, 활성화 생명주기와 코드 구성은 [VS Code 확장 구조 이해하기](vscode.md)를 참고한다.
+뷰·명령·패널은 공통 부모를 상속하고 `src/atlas/contributions.ts`에서 인스턴스를 구성한다.
 `extension.ts`는 `System`을 생성하고 `system.update()`를 호출하며, 실제 흐름은 `System`이 관리한다.
 프로젝트 설정은 `config`의 JSONC로 관리하며 `package.json`은 자동 생성한다.
 자세한 방법은 [클래스 기반 확장과 manifest 생성](manifest.md)을 참고한다.
+Docker 이미지 연결과 TBB/CUDA 선택은 [백엔드 사용 방법](backend.md)을 참고한다.
 
 ## 1. 다음에 다시 시작할 때
 
@@ -71,15 +72,15 @@ VSCODE_BIN=/snap/bin/code npm run dev
 `contributes.views`가 `atlas-engine.overview` 뷰를 연결하고,
 `System`이 `View.initialize()`를 호출하여 해당 ID의 TreeDataProvider를 등록한다.
 현재 트리는 비어 있으므로 `contributes.viewsWelcome`의 환영 문구와 버튼을 표시한다.
-항목을 추가하려면 `src/views/overview.ts`의 `getChildren()`에서 `TreeItem` 목록을 반환한다.
+항목을 추가하려면 `src/atlas/views/overview.ts`의 `getChildren()`에서 `TreeItem` 목록을 반환한다.
 사이드바를 처음 열어도 확장이 활성화되며, 등록한 provider는 확장 종료 시 해제된다.
 VS Code 기본 배치에서는 왼쪽에 표시되며, 사용자가 옮긴 위치는 VS Code가 기억한다.
 
 | 파일 | 역할 |
 | --- | --- |
 | `src/extension.ts` | System 생성, 종료 시 정리 연결, 최초 update 호출 |
-| `src/system/system.ts` | 구성 요소 소유, 등록·명령 실행·갱신·정리 제어 |
-| `src/contributions.ts` | 부모 클래스를 상속한 뷰·명령·패널 인스턴스 구성 |
+| `src/atlas/system/system.ts` | 구성 요소 소유, 등록·명령 실행·갱신·정리 제어 |
+| `src/atlas/contributions.ts` | 부모 클래스를 상속한 뷰·명령·패널 인스턴스 구성 |
 | `package.json` | 명령 ID·표시 이름, 지원 VS Code 버전, 진입점, npm 명령 |
 | `esbuild.js` | TypeScript를 `dist/extension.js`로 번들링 |
 | `tsconfig.json` | TypeScript 검사·테스트 컴파일 설정 |

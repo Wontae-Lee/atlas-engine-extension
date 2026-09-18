@@ -3,7 +3,7 @@ const { buildSync } = require('esbuild');
 
 const result = buildSync({
     absWorkingDir: path.resolve(__dirname, '..'),
-    entryPoints: ['src/contributions.ts'],
+    entryPoints: ['src/atlas/contributions.ts'],
     bundle: true,
     platform: 'node',
     format: 'cjs',
@@ -31,7 +31,7 @@ uniqueIds(views, 'view');
 uniqueIds(panels, 'panel');
 const actions = [
     ...commands,
-    ...panels.map(panel => ({ id: panel.commandId, title: panel.title })),
+    ...panels.map(panel => ({ id: panel.command_id, title: panel.title })),
 ];
 uniqueIds(actions, 'command');
 const contributions = {

@@ -1,6 +1,6 @@
 # VS Code 확장 구조 이해하기
 
-이 저장소의 뷰·명령·패널은 부모 클래스를 상속하고 `src/contributions.ts`에서 인스턴스로 구성한다.
+이 저장소의 뷰·명령·패널은 부모 클래스를 상속하고 `src/atlas/contributions.ts`에서 인스턴스로 구성한다.
 `extension.ts`가 생성하는 `System`이 이 객체들을 소유하고 실행 순서를 관리한다.
 `package.json`은 클래스 선언과 프로젝트 JSONC 설정을 합친 생성 결과다.
 자세한 절차는 [클래스 기반 확장과 manifest 생성](manifest.md)을 참고한다.
@@ -69,11 +69,14 @@ atlas-engine-extension/
 ├── package-lock.json            의존성 버전 고정
 ├── src/
 │   ├── extension.ts             System 생성과 최초 update
-│   ├── contributions.ts         뷰·명령·패널 인스턴스 구성
-│   ├── system/system.ts         전체 소유와 실행 흐름
-│   ├── views/                   View 부모와 Overview 구현
-│   ├── commands/                Command 부모와 HelloWorld 구현
-│   └── panels/panel.ts          에디터 패널의 공통 부모
+│   └── atlas/
+│       ├── contributions.ts     뷰·명령·패널 인스턴스 구성
+│       ├── system/system.ts     전체 소유와 실행 흐름
+│       ├── backend/             백엔드 선택과 Docker 연결
+│       ├── detail/              여러 모듈의 내부 구현과 private_helpers.ts
+│       ├── views/               View 부모와 Overview 구현
+│       ├── commands/            Command 부모와 명령 구현
+│       └── panels/panel.ts      에디터 패널의 공통 부모
 ├── test/
 │   └── extension.test.ts        VS Code 통합 테스트
 ├── dist/
@@ -164,7 +167,7 @@ VS Code는 이 파일을 먼저 읽어서 확장의 정체, 호환 버전, 진�
 
 ```ts
 import * as vscode from 'vscode';
-import { System } from './system/system';
+import { System } from './atlas/system/system';
 
 export function activate(context: vscode.ExtensionContext) {
   const system = new System(vscode);

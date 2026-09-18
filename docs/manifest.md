@@ -1,25 +1,33 @@
 # 클래스 기반 확장과 manifest 생성
 
 뷰·명령·패널은 공통 부모를 상속한 `src`의 클래스에서 관리한다.
-`src/contributions.ts`의 `createContributions()`가 구성 객체를 만들고,
+`src/atlas/contributions.ts`의 `createContributions()`가 구성 객체를 만들고,
 `System`과 manifest 생성기가 같은 함수를 사용한다.
 루트 `package.json`은 생성 결과이므로 직접 수정하지 않고 Git에는 함께 커밋한다.
 
 | 파일 | 역할 |
 | --- | --- |
 | `src/extension.ts` | System 생성, 확장 종료 시 정리 연결, 최초 update() 호출 |
-| `src/system/system.ts` | 객체 소유, VS Code 등록, 명령 실행과 화면 갱신 흐름 관리 |
-| `src/views/view.ts` | 사이드바 뷰의 공통 선언·등록·갱신·정리 |
-| `src/views/overview.ts` | View를 상속한 Overview의 선언과 트리 내용 |
-| `src/commands/command.ts` | 명령 ID·제목과 execute()를 규정하는 부모 클래스 |
-| `src/commands/helloWorld.ts` | Command를 상속한 Hello World의 실행 동작 |
-| `src/panels/panel.ts` | 에디터 Webview 패널의 열기·갱신·정리와 render() 계약 |
-| `src/contributions.ts` | 컨테이너 선언과 뷰·명령·패널 인스턴스 구성 |
+| `src/atlas/system/system.ts` | 객체 소유, VS Code 등록, 명령 실행과 화면 갱신 흐름 관리 |
+| `src/atlas/backend/backend.ts` | 백엔드 선택 상태, 연결 교체·검증과 실행 흐름 관리 |
+| `src/atlas/backend/docker_backend.ts` | 이미지 관리, GPU 검사와 컨테이너 연결 생성 |
+| `src/atlas/backend/backend_types.ts` | 백엔드·통신 계약과 이미지 주소 |
+| `src/atlas/detail/` | backend·views·commands·panels 등 여러 모듈의 내부 구현 |
+| `src/atlas/detail/private_helpers.ts` | 여러 모듈에서 공유하는 오류·취소·실행·정리 헬퍼 |
+| `src/atlas/views/view.ts` | 사이드바 뷰의 공통 선언·등록·갱신·정리 |
+| `src/atlas/views/overview.ts` | View를 상속한 Overview의 선언과 트리 내용 |
+| `src/atlas/commands/command.ts` | 명령 ID·제목과 execute()를 규정하는 부모 클래스 |
+| `src/atlas/commands/hello_world.ts` | Command를 상속한 Hello World의 실행 동작 |
+| `src/atlas/panels/panel.ts` | 에디터 Webview 패널의 열기·갱신·정리와 render() 계약 |
+| `src/atlas/contributions.ts` | 컨테이너 선언과 뷰·명령·패널 인스턴스 구성 |
 | `config/package.jsonc` | 프로젝트 이름·버전·진입점 |
 | `config/scripts.jsonc` | npm 명령 |
 | `config/dependencies.jsonc` | 의존성·overrides |
 | `scripts/read_contributions.cjs` | 구성 모듈을 메모리에서 번들링하고 인스턴스의 선언 정보 읽기 |
 | `scripts/generate_manifest.py` | JSONC와 선언 정보를 합쳐 JSON 출력 |
+
+백엔드 내부 파일의 역할과 호출 흐름은 [Docker 백엔드 문서](backend.md#코드와-통신)에 정리했다.
+`detail` 내부 구현을 나누어도 뷰·명령 선언과 manifest 생성 방식은 동일하다.
 
 ## 소유와 실행 흐름
 
@@ -32,10 +40,11 @@ system.update();
 ```
 
 `System` 생성자는 `createContributions()`로 객체를 만들고 명령과 뷰,
-패널을 여는 명령을 등록한다. `update()`는 뷰를 갱신한 뒤 열린 패널을 갱신한다.
+패널을 여는 명령을 등록한다. `update()`는 최초 백엔드 연결을 시작하고 뷰와 열린 패널을 갱신한다.
 등록과 갱신이 분리되어 있으므로 `update()`를 다시 호출해도 등록을 반복하지 않는다.
 명령이 성공적으로 완료되거나 패널을 여는 명령이 실행되면 `System`이 다시 `update()`를 호출한다.
 VS Code의 이벤트 흐름 안에서 호출하며, 별도의 무한 루프나 주기적 타이머는 사용하지 않는다.
+백엔드는 `Backend`가 소유하며, 실제 이미지 다운로드와 프로세스 실행은 초기화 이후에 시작한다.
 확장 종료 시 VS Code가 `System.dispose()`를 호출하면 소유한 등록과 화면 자원을 정리한다.
 
 ```text
@@ -52,8 +61,8 @@ extension.ts
 
 ## 새 뷰 추가
 
-1. `src/views/projects.ts`에 클래스를 작성한다.
-2. `src/contributions.ts`에서 import하고 `createContributions()`의 `views`에 인스턴스를 추가한다.
+1. `src/atlas/views/projects.ts`에 클래스를 작성한다.
+2. `src/atlas/contributions.ts`에서 import하고 `createContributions()`의 `views`에 인스턴스를 추가한다.
 3. 개발 watch가 빌드와 manifest를 갱신하면 VS Code에서 `Developer: Reload Window`를 실행한다.
 
 ```ts
@@ -85,7 +94,7 @@ export class Projects extends View {
 ## 새 패널 추가
 
 사이드바 내부 영역은 `View`이고, 에디터 탭으로 열리는 HTML 화면은 `Panel`이다.
-패널은 `src/panels/`에 부모 `Panel`을 상속한 클래스로 작성한다.
+패널은 `src/atlas/panels/`에 부모 `Panel`을 상속한 클래스로 작성한다.
 
 ```ts
 import { Panel } from './panel';

@@ -3,12 +3,16 @@
 These instructions apply to this repository. Read
 [coding-style.md](docs/guidelines/coding-style.md) before changing code.
 
-This file records working rules. It does not prescribe a directory layout,
-module hierarchy, or architecture. Structures shown in other documents are
-examples unless the user explicitly asks to adopt them.
+This file records working rules and file conventions. It does not prescribe a
+directory layout, module hierarchy, or architecture. Structures shown in other
+documents are examples unless the user explicitly asks to adopt them.
 
 ## Working Rules
 
+- Define one class per file, including test helper classes. Use snake_case
+  filenames, class member variables, and member functions, including constructor parameter
+  properties and project-owned accessor properties. Preserve member names
+  required by external APIs and protocols.
 - Respond in Korean unless the user requests another language.
 - Implement only the requested behavior. Do not add unrelated capabilities,
   refactorings, or architectural changes.

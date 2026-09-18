@@ -7,7 +7,7 @@
  * - Type annotations are checked by TypeScript and removed from emitted JavaScript.
  */
 import * as vscode from 'vscode';
-import { System } from './system/system';
+import { System } from './atlas/system/system';
 
 /**
  * VS Code delegates the extension lifecycle to System.
@@ -23,7 +23,7 @@ import { System } from './system/system';
  * @throws Propagates an error if System construction or its initial update fails.
  */
 export function activate(context: vscode.ExtensionContext) {
-	const system = new System(vscode);
+	const system = new System(vscode, undefined, context.globalState);
 	// const prevents assigning another value to "system"; it does not freeze the object.
 	// new calls the constructor and produces an instance. Its inferred type is System.
 	// push adds that instance to the array. Its numeric return value (new length) is ignored.

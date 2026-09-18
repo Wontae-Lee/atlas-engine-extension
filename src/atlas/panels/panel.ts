@@ -31,12 +31,12 @@ export abstract class Panel implements vscode.Disposable {
 
 	/**
 	 * The generator and System use the same command ID to open this panel.
-	 * "get" defines an accessor property: use panel.commandId, not panel.commandId().
+	 * "get" defines an accessor property: use panel.command_id, not panel.command_id().
 	 * A template literal uses backticks; an interpolation such as ${this.id} inserts a value.
 	 *
 	 * @returns The panel ID followed by .open, for example atlas-engine.inspector.open.
 	 */
-	get commandId(): string {
+	get command_id(): string {
 		return `${this.id}.open`;
 	}
 

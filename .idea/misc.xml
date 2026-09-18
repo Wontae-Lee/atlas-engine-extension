@@ -4,5 +4,8 @@
     <sourceRoots>
       <file path="$PROJECT_DIR$/src" />
     </sourceRoots>
+    <excludeRoots>
+      <file path="$PROJECT_DIR$/.vscode-test" />
+    </excludeRoots>
   </component>
 </project>

@@ -9,7 +9,9 @@
   "categories": [
     "Other"
   ],
-  "activationEvents": [],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
   "main": "./dist/extension.js",
   "devDependencies": {
     "@types/vscode": "^1.138.0",
@@ -73,6 +75,14 @@
       {
         "command": "atlas-engine.helloWorld",
         "title": "Hello World"
+      },
+      {
+        "command": "atlas-engine.backend.select",
+        "title": "Atlas Engine: Select Backend"
+      },
+      {
+        "command": "atlas-engine.backend.check",
+        "title": "Atlas Engine: Check Backend"
       }
     ]
   }

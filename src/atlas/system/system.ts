@@ -9,7 +9,7 @@ import { createContributions, type Contributions } from '../contributions';
 /**
  * Owns the extension's components and controls registration, command execution, and refresh.
  * Like the engine's System, update() makes the component execution order explicit.
- * VS Code drives events; this system does not start a simulation loop or a backend process.
+ * VS Code drives events; Backend owns the Docker connection used by backend commands.
  *
  * "class" defines instances with state and methods. "implements vscode.Disposable"
  * asks the type checker to verify the dispose contract; it does not inherit implementation.
@@ -33,12 +33,14 @@ export class System implements vscode.Disposable {
 	 *
 	 * @param api The live API supplied by extension.ts, not acquired by the generator.
 	 * @param contributions Component instances whose lifetime this System takes ownership of.
+	 * @param storage Extension state used to remember a successfully connected backend.
 	 * @throws Initialization errors after attempting to clean up resources already acquired.
 	 * Constructors have no return-type annotation; new System(...) returns the new instance.
 	 */
 	constructor(
 		private readonly api: typeof vscode,
-		private readonly contributions: Contributions = createContributions()
+		private readonly contributions: Contributions = createContributions(),
+		private readonly storage?: vscode.Memento
 	) {
 		try {
 			// this denotes the current System instance. Initialization registers components once.
@@ -58,6 +60,7 @@ export class System implements vscode.Disposable {
 	 * @throws Errors from a component's initialization or the VS Code registration API.
 	 */
 	private initialize(): void {
+		this.contributions.backend.initialize(this.api, this.storage);
 		// for...of visits array values, unlike for...in, which visits property keys.
 		for (const view of this.contributions.views) {
 			view.initialize(this.api);
@@ -80,7 +83,7 @@ export class System implements vscode.Disposable {
 		for (const panel of this.contributions.panels) {
 			// () => { ... } is a zero-argument callback with a statement body.
 			// It has no return statement, so invoking it yields undefined.
-			this.registrations.push(this.api.commands.registerCommand(panel.commandId, () => {
+			this.registrations.push(this.api.commands.registerCommand(panel.command_id, () => {
 				panel.show(this.api);
 				this.update();
 			}));
@@ -88,7 +91,8 @@ export class System implements vscode.Disposable {
 	}
 
 	/**
-	 * Refresh sidebar data before editor panels, without repeating registrations.
+	 * Start the initial backend connection, then refresh sidebar data before editor panels.
+	 * Backend.update() starts only once; repeated updates do not repeat registrations or downloads.
 	 * Derived methods are dispatched through base-class references at runtime.
 	 *
 	 * @returns Nothing, including when the disposed guard exits early with bare return.
@@ -99,6 +103,7 @@ export class System implements vscode.Disposable {
 		if (this.disposed) {
 			return;
 		}
+		this.contributions.backend.update();
 		for (const view of this.contributions.views) {
 			view.update();
 		}
@@ -119,6 +124,7 @@ export class System implements vscode.Disposable {
 			return;
 		}
 		this.disposed = true;
+		this.contributions.backend.dispose();
 		// splice(0) removes and returns every element, leaving the owned array empty.
 		// reverse() reverses that returned array, releasing the newest registration first.
 		for (const registration of this.registrations.splice(0).reverse()) {

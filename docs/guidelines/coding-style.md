@@ -1,7 +1,7 @@
 # Coding Style
 
 These rules describe how to write and change code in Atlas Engine Extension.
-They do not require an architecture, directory layout, or file-splitting pattern.
+They do not require an architecture or directory layout.
 
 ## 1. Scope and Readability
 
@@ -10,6 +10,10 @@ They do not require an architecture, directory layout, or file-splitting pattern
 - Keep code concise and direct. Avoid unnecessary temporary variables and
   redundant branches.
 - Keep the flow understandable where the code is used.
+- Define one class per file, including test helper classes. Name class files
+  after their class using snake_case, for example DockerBackend in docker_backend.ts.
+- Shared interfaces, type aliases, constants, and functions may use separate
+  snake_case files; they do not need artificial wrapper classes.
 - Do not split work into many tiny helpers merely to shorten functions.
 - Extract a helper or type when it has a substantial, clearly named
   responsibility.
@@ -18,14 +22,18 @@ They do not require an architecture, directory layout, or file-splitting pattern
 
 ## 2. Naming
 
+- Use snake_case for filenames, class member variables, and member functions, including constructor
+  parameter properties and project-owned accessor properties.
+- Preserve names required by external interfaces and wire protocols, such as
+  VS Code's onDidChangeTreeData, getTreeItem, and getChildren. This rule does not rename classes,
+  public command IDs, or local variables.
 - Prefer concise, meaningful names. Readable flow matters more than raw name
   length.
 - Avoid repeating context already supplied by the containing type or module.
 - Give distinct steps distinct names. Avoid near-duplicate names that differ
   only by a generic suffix or repeated verb.
-- Use a count suffix for quantities, following the surrounding naming
-  convention, such as `projectCount` in camelCase or `project_count` in
-  snake_case. Avoid `numberOfProject` or `numOfProject` variants.
+- Use a count suffix for quantities, such as project_count for a member variable.
+  Avoid numberOfProject or numOfProject variants.
 - Use established domain acronyms when they are already familiar in the code.
   Do not expand them into unnecessarily long names.
 - Treat public renames as breaking changes. Do not rename public APIs or

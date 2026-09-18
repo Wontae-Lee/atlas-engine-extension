@@ -64,12 +64,12 @@ def generate():
         ["node", str(root / "scripts/read_contributions.cjs")],
         check=True, capture_output=True, text=True,
     )
-    merge(manifest, json.loads(result.stdout), "src/contributions.ts")
+    merge(manifest, json.loads(result.stdout), "src/atlas/contributions.ts")
     output = json.dumps(manifest, ensure_ascii=False, indent=2, allow_nan=False) + "\n"
     destination = root / "package.json"
     if not destination.exists() or destination.read_text(encoding="utf-8") != output:
         destination.write_text(output, encoding="utf-8")
-    print("Generated package.json from config and src/contributions.ts")
+    print("Generated package.json from config and src/atlas/contributions.ts")
 
 
 if __name__ == "__main__":

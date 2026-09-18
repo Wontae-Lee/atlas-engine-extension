@@ -4,10 +4,13 @@
  * Relative paths start at this file's directory; "./" means the current directory.
  */
 import type { Command } from './commands/command';
-import { HelloWorld } from './commands/helloWorld';
+import { HelloWorld } from './commands/hello_world';
 import type { Panel } from './panels/panel';
 import { Overview } from './views/overview';
 import type { View } from './views/view';
+import { Backend } from './backend/backend';
+import { SelectBackend } from './commands/select_backend';
+import { CheckBackend } from './commands/check_backend';
 
 /**
  * Components are ordinary instances of shared base classes, not constructor interfaces.
@@ -18,6 +21,7 @@ import type { View } from './views/view';
  * TypeScript checks compatibility structurally: values must provide the required members.
  */
 export interface Contributions {
+	readonly backend: Backend;
 	/**
 	 * The first readonly prevents replacing the containers property through this interface.
 	 * The second readonly makes the array read-only: callers cannot push or remove elements.
@@ -46,14 +50,16 @@ export interface Contributions {
  * @returns The assembled metadata and component instances. Creating them does not register UI.
  */
 export function createContributions(): Contributions {
+	const backend = new Backend();
 	return {
+		backend,
 		// Object properties use "key: value" and commas; type declarations above use type names.
 		containers: [
 			{ id: 'atlas-engine', title: 'Atlas Engine', icon: 'media/atlas-engine-logo.svg' }
 		],
 		// new Overview() returns an Overview instance, assignable to the View base type.
 		views: [new Overview()],
-		commands: [new HelloWorld()],
+		commands: [new HelloWorld(), new SelectBackend(backend), new CheckBackend(backend)],
 		// [] contains zero elements. Add a derived Panel instance here to expose its open command.
 		panels: []
 	};

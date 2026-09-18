@@ -21,9 +21,8 @@
     "categories": [
         "Other"
     ],
-    // Contributed commands and views activate this extension automatically on supported VS Code versions.
-    // Add explicit events here only when another activation trigger is needed.
-    "activationEvents": [],
+    // Show the backend status bar after startup, even before the sidebar is opened.
+    "activationEvents": ["onStartupFinished"],
     // Extension Host entry point produced by esbuild from src/extension.ts.
     // VS Code loads this JavaScript bundle, not the TypeScript source directly.
     "main": "./dist/extension.js"
