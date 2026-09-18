@@ -24,7 +24,7 @@ export class RequestChannel {
 		this.lines.on('line', line => this.receive(line));
 	}
 
-	request(method: 'info' | 'smoke', signal?: AbortSignal): Promise<unknown> {
+	request(method: string, params?: unknown, signal?: AbortSignal): Promise<unknown> {
 		return new Promise((resolve, reject) => {
 			if (signal?.aborted) {
 				reject(cancelled());
@@ -46,7 +46,14 @@ export class RequestChannel {
 					signal?.removeEventListener('abort', abort);
 				}
 			});
-			this.output.write(`${JSON.stringify({ id, method })}\n`);
+			try {
+				this.output.write(`${JSON.stringify({ id, method, params })}\n`);
+			} catch (error) {
+				this.pending.delete(id);
+				clearTimeout(timer);
+				signal?.removeEventListener('abort', abort);
+				reject(error instanceof Error ? error : new Error(error_message(error)));
+			}
 		});
 	}
 

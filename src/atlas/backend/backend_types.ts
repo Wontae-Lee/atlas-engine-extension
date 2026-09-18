@@ -16,7 +16,7 @@ export interface BackendInfo {
 export interface BackendConnection {
 	readonly mode: BackendMode;
 	info(signal?: AbortSignal): Promise<BackendInfo>;
-	smoke(signal?: AbortSignal): Promise<{ output: string }>;
+	request(method: string, params?: unknown, signal?: AbortSignal): Promise<unknown>;
 	on_exit(callback: (error: Error) => void): () => void;
 	dispose(): void;
 }

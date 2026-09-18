@@ -16,8 +16,9 @@ export class Connection implements BackendConnection {
 		return this.info_result ?? { engine: this.mode, version: '0.1.0', protocol: 1 };
 	}
 
-	async smoke(): Promise<{ output: string }> {
-		return { output: 'simulation passed' };
+	async request(method: string): Promise<unknown> {
+		this.events.push(`request:${this.mode}:${method}`);
+		return null;
 	}
 
 	on_exit(callback: (error: Error) => void): () => void {

@@ -1,7 +1,8 @@
 # Coding Style
 
 These rules describe how to write and change code in Atlas Engine Extension.
-Project-specific source and helper placement follows [AGENTS.md](../../AGENTS.md).
+For source layout and component ownership, see
+[Extension architecture](../vscode.md) and [Streaming](../streaming.md).
 
 ## 1. Scope and Readability
 

@@ -88,6 +88,8 @@ suite('Backend selection', () => {
 	});
 
 	test('Failed CUDA probe closes the candidate and keeps the existing TBB connection', async () => {
+		const connections: (BackendConnection | undefined)[] = [];
+		backend.on_connection(connection => connections.push(connection));
 		await backend.connect('tbb');
 		transport.images.add('cuda');
 		transport.connections.cuda.info_error = new Error('CUDA native kernel failed');
@@ -97,6 +99,8 @@ suite('Backend selection', () => {
 		assert.deepStrictEqual(ui.persisted, ['tbb']);
 		assert.match(ui.status.tooltip, /TBB · connected/);
 		assert.match(ui.errors[0]!, /CUDA native kernel failed/);
+		assert.strictEqual(backend.get_connection(), transport.connections.tbb);
+		assert.deepStrictEqual(connections, [transport.connections.tbb]);
 	});
 
 	test('Cancellation rejects a late successful probe and preserves the active connection', async () => {
@@ -118,6 +122,8 @@ suite('Backend selection', () => {
 	});
 
 	test('Disposal closes an in-flight connection even if opening completes late', async () => {
+		const connections: (BackendConnection | undefined)[] = [];
+		backend.on_connection(connection => connections.push(connection));
 		await backend.connect('tbb');
 		transport.images.add('cuda');
 		const opening = new Deferred<BackendConnection>();
@@ -133,14 +139,20 @@ suite('Backend selection', () => {
 		assert.strictEqual(ui.status.disposed, true);
 		assert.deepStrictEqual(ui.persisted, ['tbb']);
 		assert.deepStrictEqual(ui.errors, []);
+		assert.strictEqual(backend.get_connection(), undefined);
+		assert.deepStrictEqual(connections, [transport.connections.tbb, undefined]);
 	});
 
 	test('External container death changes the status to disconnected and reports the failure', async () => {
+		const connections: (BackendConnection | undefined)[] = [];
+		backend.on_connection(connection => connections.push(connection));
 		await backend.connect('tbb');
 		transport.connections.tbb.exit(new Error('Container was stopped externally'));
 		assert.match(ui.status.tooltip, /TBB · not connected/);
 		assert.match(ui.status.text, /warning/);
 		assert.match(ui.errors[0]!, /Container was stopped externally/);
 		assert.deepStrictEqual(ui.persisted, ['tbb']);
+		assert.strictEqual(backend.get_connection(), undefined);
+		assert.deepStrictEqual(connections, [transport.connections.tbb, undefined]);
 	});
 });

@@ -113,7 +113,7 @@ export class System implements vscode.Disposable {
 	}
 
 	/**
-	 * Release registrations first, then panels, command-owned resources, and views.
+	 * Stop the backend and streaming, then release registrations, panels, commands, and views.
 	 * VS Code invokes this via context.subscriptions. This is explicit cleanup, not a C++
 	 * destructor: JavaScript garbage collection does not automatically call dispose().
 	 *
@@ -125,6 +125,7 @@ export class System implements vscode.Disposable {
 		}
 		this.disposed = true;
 		this.contributions.backend.dispose();
+		this.contributions.streaming.dispose();
 		// splice(0) removes and returns every element, leaving the owned array empty.
 		// reverse() reverses that returned array, releasing the newest registration first.
 		for (const registration of this.registrations.splice(0).reverse()) {

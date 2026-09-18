@@ -11,6 +11,7 @@ export class Backend implements vscode.Disposable {
 	private readonly setup: BackendSetup;
 	private storage?: vscode.Memento;
 	private connection?: BackendConnection;
+	private readonly connection_listeners = new Set<(connection: BackendConnection | undefined, error?: Error) => void>();
 	private stop_listening?: () => void;
 	private operation?: AbortController;
 	private mode: BackendMode = 'tbb';
@@ -91,7 +92,7 @@ export class Backend implements vscode.Disposable {
 		}
 	}
 
-	/** Run the upstream simulation example over the existing JSON connection. */
+	/** Verify the selected backend without creating or advancing a simulation session. */
 	async verify(): Promise<void> {
 		if (this.operation || this.disposed) {
 			return;
@@ -109,12 +110,12 @@ export class Backend implements vscode.Disposable {
 		this.refresh();
 		try {
 			await this.ui.with_progress('Checking atlas-engine-backend', operation, async () => {
-				const result = await connection.smoke(operation.signal);
+				const result = await connection.info(operation.signal);
 				operation.signal.throwIfAborted();
 				this.ui.log(`${JSON.stringify(result)}\n`);
 				if (!this.disposed) {
 					this.failure = undefined;
-					this.stage = 'Ready · simulation check passed';
+					this.stage = 'Ready · backend check passed';
 					this.ui.show_verified(this.mode);
 				}
 			});
@@ -128,11 +129,23 @@ export class Backend implements vscode.Disposable {
 		}
 	}
 
+	get_connection(): BackendConnection | undefined {
+		return this.connection;
+	}
+
+	on_connection(listener: (connection: BackendConnection | undefined, error?: Error) => void): () => void {
+		this.connection_listeners.add(listener);
+		return () => { this.connection_listeners.delete(listener); };
+	}
+
 	dispose(): void {
 		this.disposed = true;
 		this.operation?.abort();
 		this.stop_listening?.();
 		this.connection?.dispose();
+		this.connection = undefined;
+		this.notify_connection();
+		this.connection_listeners.clear();
 		this.ui.dispose();
 	}
 
@@ -147,6 +160,7 @@ export class Backend implements vscode.Disposable {
 			this.mode = mode;
 			this.stage = `Ready · Atlas ${info.version}`;
 			this.stop_listening = next.on_exit(error => this.connection_exited(next, error));
+			this.notify_connection();
 			this.ui.log(`Connected to ${info.engine}, Atlas ${info.version}, protocol ${info.protocol}\n`);
 		} catch (error) {
 			next.dispose();
@@ -159,11 +173,18 @@ export class Backend implements vscode.Disposable {
 			return;
 		}
 		this.connection = undefined;
+		this.notify_connection(error);
 		if (error.name === 'AbortError' && this.operation?.signal.aborted) {
 			this.stage = 'Cancelled · select a backend to reconnect';
 			this.refresh();
 		} else {
 			this.report_failure(error);
+		}
+	}
+
+	private notify_connection(error?: Error): void {
+		for (const listener of this.connection_listeners) {
+			listener(this.connection, error);
 		}
 	}
 

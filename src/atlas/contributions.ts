@@ -11,6 +11,7 @@ import type { View } from './views/view';
 import { Backend } from './backend/backend';
 import { SelectBackend } from './commands/select_backend';
 import { CheckBackend } from './commands/check_backend';
+import { Streaming } from './streaming/streaming';
 
 /**
  * Components are ordinary instances of shared base classes, not constructor interfaces.
@@ -22,6 +23,7 @@ import { CheckBackend } from './commands/check_backend';
  */
 export interface Contributions {
 	readonly backend: Backend;
+	readonly streaming: Streaming;
 	/**
 	 * The first readonly prevents replacing the containers property through this interface.
 	 * The second readonly makes the array read-only: callers cannot push or remove elements.
@@ -53,6 +55,7 @@ export function createContributions(): Contributions {
 	const backend = new Backend();
 	return {
 		backend,
+		streaming: new Streaming(backend),
 		// Object properties use "key: value" and commas; type declarations above use type names.
 		containers: [
 			{ id: 'atlas-engine', title: 'Atlas Engine', icon: 'media/atlas-engine-logo.svg' }

@@ -1,13 +1,15 @@
 import { cancelled, error_message, is_container_removed, run } from '../detail/private_helpers';
 import { randomUUID } from 'node:crypto';
+import { join } from 'node:path';
 import { IMAGES, type BackendMode, type BackendConnection, type BackendTransport } from './backend_types';
 import { ContainerConnection } from '../detail/container_connection';
 import { DockerError } from '../detail/docker_error';
+import { get_runtime_source } from '../streaming/runtime_source';
 
 /** Docker operations never install drivers or pull CUDA without an explicit pull call. */
 export class DockerBackend implements BackendTransport {
 	/** @param executable Docker CLI path; tests can supply a local protocol fixture. */
-	constructor(private readonly executable = 'docker') {}
+	constructor(private readonly executable = 'docker', private readonly runtime_directory?: string) {}
 
 	async check_docker(signal?: AbortSignal): Promise<void> {
 		const server = await run(this.executable, ['info', '--format', '{{.OSType}} {{.Architecture}}'], signal);
@@ -73,7 +75,8 @@ export class DockerBackend implements BackendTransport {
 		if (signal?.aborted) {
 			throw cancelled();
 		}
-		const connection = new ContainerConnection(mode, this.executable, onOutput, signal);
+		const source = get_runtime_source(this.runtime_directory ?? join(__dirname, 'runtime'));
+		const connection = new ContainerConnection(mode, this.executable, onOutput, source, signal);
 		try {
 			await connection.info(signal);
 			return connection;

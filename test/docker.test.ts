@@ -37,7 +37,7 @@ if (args[0] === 'run') {
 }
 `, { mode: 0o755 });
 	return {
-		backend: new DockerBackend(executable),
+		backend: new DockerBackend(executable, join(__dirname, '../../src/atlas/streaming/runtime')),
 		async invocations(): Promise<Invocation[]> {
 			return (await readFile(log, 'utf8')).trim().split('\n').map(line => JSON.parse(line) as Invocation);
 		},
@@ -84,7 +84,7 @@ suite('Docker backend transport', function () {
 			connection = await test.backend.open('tbb', () => {});
 			let exit: Error | undefined;
 			connection.on_exit(error => { exit = error; });
-			await assert.rejects(connection.smoke(), /Invalid backend JSON response/);
+			await assert.rejects(connection.request('snapshot'), /Invalid backend JSON response/);
 			assert.match(exit!.message, /Invalid backend JSON response/);
 			await waitForCleanup(test);
 		} finally {
@@ -103,7 +103,7 @@ suite('Docker backend transport', function () {
 			connection = await test.backend.open('tbb', () => {});
 			let exit: Error | undefined;
 			connection.on_exit(error => { exit = error; });
-			await assert.rejects(connection.smoke(), /exited \(17\): intentional container failure/);
+			await assert.rejects(connection.request('snapshot'), /exited \(17\): intentional container failure/);
 			assert.match(exit!.message, /intentional container failure/);
 			await waitForCleanup(test);
 		} finally {
@@ -121,8 +121,8 @@ suite('Docker backend transport', function () {
 		try {
 			connection = await test.backend.open('tbb', () => {});
 			const controller = new AbortController();
-			const first = assert.rejects(connection.smoke(controller.signal), { name: 'AbortError' });
-			const second = assert.rejects(connection.smoke(), { name: 'AbortError' });
+			const first = assert.rejects(connection.request('snapshot', undefined, controller.signal), { name: 'AbortError' });
+			const second = assert.rejects(connection.request('snapshot'), { name: 'AbortError' });
 			controller.abort();
 			await Promise.all([first, second]);
 			await waitForCleanup(test);

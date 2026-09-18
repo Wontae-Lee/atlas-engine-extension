@@ -1,5 +1,25 @@
 import { spawn } from 'node:child_process';
 import { DockerError } from './docker_error';
+import type { SimulationSnapshot } from '../streaming/streaming_types';
+
+export function is_simulation_snapshot(value: unknown): value is SimulationSnapshot {
+	if (!value || typeof value !== 'object' || Array.isArray(value)) {
+		return false;
+	}
+	const snapshot = value as Partial<SimulationSnapshot>;
+	const count = snapshot.particle_count;
+	const vector = (item: unknown): boolean => Array.isArray(item) && item.length === 3
+		&& item.every(component => typeof component === 'number' && Number.isFinite(component));
+	return typeof count === 'number' && Number.isSafeInteger(count) && count >= 0
+		&& typeof snapshot.step === 'number' && Number.isSafeInteger(snapshot.step) && snapshot.step >= 0
+		&& typeof snapshot.dt === 'number' && Number.isFinite(snapshot.dt) && snapshot.dt > 0
+		&& typeof snapshot.time === 'number' && Number.isFinite(snapshot.time) && snapshot.time >= 0
+		&& typeof snapshot.cell_count === 'number' && Number.isSafeInteger(snapshot.cell_count) && snapshot.cell_count > 0
+		&& Array.isArray(snapshot.positions) && snapshot.positions.length === count && snapshot.positions.every(vector)
+		&& Array.isArray(snapshot.velocities) && snapshot.velocities.length === count && snapshot.velocities.every(vector)
+		&& Array.isArray(snapshot.species) && snapshot.species.length === count
+		&& snapshot.species.every(species => Number.isSafeInteger(species) && species >= 0);
+}
 
 export function error_message(error: unknown): string {
 	return error instanceof Error ? error.message : String(error);
