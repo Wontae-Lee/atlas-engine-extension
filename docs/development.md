@@ -3,6 +3,7 @@
 이 프로젝트는 CLion에서 TypeScript를 편집하고, VS Code의 Extension Host에서 실행한다.
 브레이크포인트는 CLion의 Node.js 디버거를 Extension Host에 연결해서 사용한다.
 `src/extension.ts`를 일반 Node.js 프로그램처럼 직접 실행하지 않는다. `vscode` API는 VS Code가 제공한다.
+manifest, 활성화 생명주기와 코드 구성은 [VS Code 확장 구조 이해하기](vscode-extension-architecture.md)를 참고한다.
 
 ## 1. 다음에 다시 시작할 때
 

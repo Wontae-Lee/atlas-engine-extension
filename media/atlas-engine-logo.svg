@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="280 12 460 430" width="460" height="430" role="img" aria-labelledby="logo-title logo-description">
+  <title id="logo-title">Atlas Engine symbol</title>
+  <desc id="logo-description">A blue globe, a charcoal half gear, and a diagonal compass needle, redrawn from the original logo without its wordmark.</desc>
+  <defs>
+    <mask id="compass-hub" maskUnits="userSpaceOnUse" x="350" y="70" width="290" height="325">
+      <rect x="350" y="70" width="290" height="325" fill="#fff" />
+      <circle cx="493" cy="228" r="30.5" fill="#000" />
+    </mask>
+  </defs>
+
+  <!-- Globe silhouette and meridians follow the original PNG's coordinates. -->
+  <g fill="#063572">
+    <path d="M349 362
+      C313 326 293 278 293 225
+      C293 115 383 25 493 25
+      C532 25 568 35 599 55
+      C609 62 610 71 602 78
+      C571 55 534 42 493 42
+      C392 42 310 124 310 225
+      C310 272 327 315 358 348Z" />
+    <path d="M396 382
+      C429 402 467 414 512 410
+      L512 428
+      C467 431 425 420 391 399
+      C385 395 388 386 396 382Z" />
+    <path d="M489 39H498V154L489 160Z" />
+    <path d="M489 307L498 303V400H489Z" />
+    <path d="M348 100
+      C388 124 442 136 502 132
+      V141C442 145 386 132 343 108Z" />
+    <path d="M300 218H435L433 227H300Z" />
+    <path d="M489 39
+      C437 53 390 130 390 220
+      C390 244 392 267 396 287
+      L389 299
+      C383 274 381 247 381 220
+      C381 134 421 60 463 39Z" />
+    <path d="M505 40
+      C525 47 545 65 559 90
+      L566 84C550 60 534 44 517 37Z" />
+    <path d="M420 358
+      C436 384 453 405 475 412
+      L459 414C440 402 426 384 414 363Z" />
+    <path d="M448 336
+      C465 332 483 331 502 332
+      V341C479 340 458 342 437 346Z" />
+  </g>
+
+  <!-- Right half gear, sharing the globe's original visual centre. -->
+  <g fill="#29343b">
+    <path d="M623 123L639 100L652 115L686 102
+      L709 141L683 166L691 197L727 205
+      L727 247L691 254L681 287L709 314
+      L686 350L652 338L628 364L640 399
+      L603 421L579 397L546 407L543 425
+      L512 428L512 382
+      C593 375 660 309 660 227
+      C660 188 647 153 623 123Z" />
+    <path d="M558 218H645V227H552Z" />
+  </g>
+
+  <!-- The hub ring is transparent, rather than painted white. -->
+  <g mask="url(#compass-hub)">
+    <path fill="#063572" d="M449 228
+      C449 207 456 197 475 184
+      L638 75L535 228Z" />
+    <path fill="#29343b" d="M449 228L535 228
+      C535 249 528 262 511 276
+      L353 393Z" />
+  </g>
+  <circle cx="493" cy="228" r="18.5" fill="#063572" />
+</svg>

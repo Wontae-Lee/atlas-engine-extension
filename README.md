@@ -1,6 +1,7 @@
 # atlas-engine README
 
 CLion에서 개발하려면 [개발·실행·디버깅 가이드](docs/development.md)를 참고하세요.
+확장의 manifest, 생명주기와 코드 구성은 [VS Code 확장 구조](docs/vscode-extension-architecture.md)에 정리되어 있습니다.
 프로젝트 루트에서 `npm run dev`로 개발용 VS Code와 자동 빌드를 시작할 수 있습니다.
 
 This is the README for your extension "atlas-engine". After writing up a brief description, we recommend including the following sections.
