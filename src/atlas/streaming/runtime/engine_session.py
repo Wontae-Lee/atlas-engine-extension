@@ -4,11 +4,14 @@ import math
 import numpy as np
 from atlas import DsmcKernelType, DsmcSolver, Float3, Fluid, MaterialDictionary, Molecule, System, Universe
 
+from .engine_scene import EngineScene
+
 
 class EngineSession:
     def __init__(self):
         self.system = None
         self.initial_config = None
+        self.scene = None
 
     def initialize(self, config):
         if not isinstance(config, dict):
@@ -60,17 +63,41 @@ class EngineSession:
 
         particles = self._particles(config.get("particles"), len(materials))
         self._check_positions(particles["positions"], lower, cell_size)
+        capacity = self._integer(config.get("buffer_size", max(1, len(particles["positions"]))), "buffer_size", 1)
+        if capacity < len(particles["positions"]):
+            raise ValueError("buffer_size cannot be smaller than the initial particle count.")
+        solver = config.get("solver", {})
+        if not isinstance(solver, dict):
+            raise ValueError("solver must be an object.")
+        sample_pairs = self._integer(solver.get("majorant_sample_pairs", 8), "majorant_sample_pairs", 1)
+        exhaustive_limit = self._integer(solver.get("majorant_exhaustive_limit", 5), "majorant_exhaustive_limit", 2)
+        scene_config = config.get("scene")
+        if isinstance(scene_config, dict) and scene_config.get("sources") and "buffer_size" not in config:
+            raise ValueError("Set buffer_size to reserve particle capacity for sources.")
         initial_config = copy.deepcopy(config)
         table = MaterialDictionary([Molecule(**material) for material in materials])
-        fluid = Fluid.from_arrays(
-            particles["positions"], particles["velocities"],
-            statistical_weight=weight, materials=table, species=particles["species"],
-        )
-        universe = Universe(Float3(*lower.tolist()), Float3(*upper.tolist()), cell_size=cell_size)
-        candidate = System(fluid=fluid, universe=universe, dt=dt, solver=DsmcSolver(kernel_type=kernel_type))
-        result = self._snapshot(candidate)
+        scene = EngineScene(self._number, self._vector)
+        try:
+            scene_arguments = scene.build(scene_config, table, len(materials))
+            fluid = Fluid.from_arrays(
+                particles["positions"], particles["velocities"],
+                statistical_weight=weight, materials=table, species=particles["species"], buffer_size=capacity,
+            )
+            universe = Universe(Float3(*lower.tolist()), Float3(*upper.tolist()), cell_size=cell_size)
+            candidate = System(
+                fluid=fluid, universe=universe, dt=dt,
+                solver=DsmcSolver(kernel_type=kernel_type, majorant_sample_pairs=sample_pairs, majorant_exhaustive_limit=exhaustive_limit),
+                **scene_arguments,
+            )
+            result = self._snapshot(candidate)
+        except Exception:
+            scene.close()
+            raise
         self.system = candidate
         self.initial_config = initial_config
+        if self.scene is not None:
+            self.scene.close()
+        self.scene = scene
         return result
 
     def snapshot(self):
@@ -106,11 +133,20 @@ class EngineSession:
     def close(self):
         self.system = None
         self.initial_config = None
+        if self.scene is not None:
+            self.scene.close()
+            self.scene = None
 
     def _require_system(self):
         if self.system is None:
             raise RuntimeError("Initialize a simulation before controlling or reading it.")
         return self.system
+
+    @staticmethod
+    def _integer(value, name, minimum):
+        if type(value) is not int or not minimum <= value <= 2_147_483_647:
+            raise ValueError(f"{name} must be an integer from {minimum} to 2147483647.")
+        return value
 
     @staticmethod
     def _number(value, name, positive=False):

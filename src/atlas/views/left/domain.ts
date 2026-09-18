@@ -1,7 +1,9 @@
-import { View } from '../view';
+import type { CaseProject } from '../../project/case_project';
+import type { Streaming } from '../../streaming/streaming';
+import { ProjectView } from '../project_view';
 
-export class Domain extends View {
-	constructor() {
-		super('atlas-engine.domain', 'DOMAIN');
+export class Domain extends ProjectView {
+	constructor(project: CaseProject, streaming: Streaming) {
+		super(project, streaming, 'domain', 'DOMAIN');
 	}
 }

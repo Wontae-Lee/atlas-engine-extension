@@ -6,13 +6,19 @@ import { Left } from './left/left';
 import { Right } from './right/right';
 import { Bottom } from './bottom/bottom';
 import { Center } from './center/center';
+import type { CaseProject } from '../project/case_project';
+import type { Streaming } from '../streaming/streaming';
 
 export class Layout implements vscode.Disposable {
 	private disposed = false;
-	readonly left = new Left();
+	readonly left: Left;
 	readonly right = new Right();
 	readonly bottom = new Bottom();
 	readonly center = new Center();
+
+	constructor(project: CaseProject, streaming: Streaming) {
+		this.left = new Left(project, streaming);
+	}
 
 	get containers(): readonly ViewContainer[] {
 		return [this.left, this.right, ...this.bottom.containers];
@@ -39,7 +45,7 @@ export class Layout implements vscode.Disposable {
 			if (this.disposed) {
 				return;
 			}
-			await api.commands.executeCommand(`${container.views[0].id}.open`, { preserveFocus: true });
+			await api.commands.executeCommand(`workbench.view.extension.${container.id}`);
 		}
 		for (const view of [...this.center.views].reverse()) {
 			if (this.disposed) {

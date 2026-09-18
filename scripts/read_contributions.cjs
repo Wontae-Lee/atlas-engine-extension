@@ -47,6 +47,10 @@ for (const container of layout.containers) {
         title: container.title,
         icon: container.icon,
     });
-    contributions.views[container.id] = container.views.map(view => ({ id: view.id, name: view.title }));
+    contributions.views[container.id] = container.views.map(view => ({
+        id: view.id,
+        name: view.title,
+        ...(view.visibility ? { visibility: view.visibility } : {}),
+    }));
 }
 process.stdout.write(JSON.stringify({ contributes: contributions }));

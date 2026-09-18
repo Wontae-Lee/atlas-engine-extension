@@ -5,7 +5,7 @@ const path = require('node:path');
 
 const production = process.argv.includes('--production');
 const watch = process.argv.includes('--watch');
-const runtime_files = ['engine_session.py', 'engine_server.py'];
+const runtime_files = ['engine_session.py', 'engine_server.py', 'engine_scene.py'];
 const runtime_directory = path.join(__dirname, 'src/atlas/streaming/runtime');
 
 /**

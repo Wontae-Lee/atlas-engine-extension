@@ -4,6 +4,7 @@ import { join } from 'node:path';
 export function get_runtime_source(directory: string): string {
 	const sources = {
 		'__init__.py': '',
+		'engine_scene.py': readFileSync(join(directory, 'engine_scene.py'), 'utf8'),
 		'engine_session.py': readFileSync(join(directory, 'engine_session.py'), 'utf8'),
 		'engine_server.py': readFileSync(join(directory, 'engine_server.py'), 'utf8')
 	};

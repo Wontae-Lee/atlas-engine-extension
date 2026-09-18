@@ -42,7 +42,8 @@ export class System implements vscode.Disposable {
 	constructor(
 		private readonly api: typeof vscode,
 		private readonly contributions: Contributions = createContributions(),
-		private readonly storage?: vscode.Memento
+		private readonly storage?: vscode.Memento,
+		private readonly workspace_storage?: vscode.Memento
 	) {
 		try {
 			// this denotes the current System instance. Initialization registers components once.
@@ -62,8 +63,20 @@ export class System implements vscode.Disposable {
 	 * @throws Errors from a component's initialization or the VS Code registration API.
 	 */
 	private initialize(): void {
+		this.contributions.project.initialize(this.api, this.workspace_storage);
 		this.contributions.backend.initialize(this.api, this.storage);
 		this.contributions.layout.initialize(this.api);
+		const refresh = () => this.contributions.layout.update();
+		const refresh_solver = () => this.contributions.layout.left.views.find(view => view.id === 'atlas-engine.solvers')?.update();
+		this.registrations.push(
+			{ dispose: this.contributions.project.on_change(refresh) },
+			{ dispose: this.contributions.streaming.on_state(refresh_solver) },
+			{ dispose: this.contributions.streaming.on_snapshot(refresh_solver) }
+		);
+		const watcher = this.api.workspace.createFileSystemWatcher('**/assets/geometry/**');
+		const assets_changed = () => this.contributions.project.assets_changed();
+		this.registrations.push(watcher, watcher.onDidCreate(assets_changed), watcher.onDidChange(assets_changed), watcher.onDidDelete(assets_changed),
+			this.api.workspace.onDidChangeWorkspaceFolders(assets_changed));
 		for (const command of this.contributions.commands) {
 			// (...args: unknown[]) collects all callback arguments into an array (rest syntax).
 			// unknown accepts any value, but consumers must narrow its type before using it.
@@ -127,6 +140,7 @@ export class System implements vscode.Disposable {
 		this.disposed = true;
 		this.contributions.backend.dispose();
 		this.contributions.streaming.dispose();
+		this.contributions.project.dispose();
 		// splice(0) removes and returns every element, leaving the owned array empty.
 		// reverse() reverses that returned array, releasing the newest registration first.
 		for (const registration of this.registrations.splice(0).reverse()) {

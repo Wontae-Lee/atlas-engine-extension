@@ -66,7 +66,7 @@
       "panel": [
         {
           "id": "atlas-engine-logs",
-          "title": "LOG",
+          "title": "SIMULATION LOG",
           "icon": "media/atlas-engine-logo.svg"
         }
       ]
@@ -75,7 +75,8 @@
       "atlas-engine": [
         {
           "id": "atlas-engine.domain",
-          "name": "DOMAIN"
+          "name": "DOMAIN",
+          "visibility": "collapsed"
         },
         {
           "id": "atlas-engine.assets",
@@ -127,7 +128,7 @@
       "atlas-engine-logs": [
         {
           "id": "atlas-engine.logs",
-          "name": "LOG"
+          "name": "SIMULATION LOG"
         }
       ]
     },
@@ -147,6 +148,10 @@
       {
         "command": "atlas-engine.layout.show",
         "title": "Atlas Engine: Show Layout"
+      },
+      {
+        "command": "atlas-engine.project.action",
+        "title": "Atlas Engine: Edit Case"
       },
       {
         "command": "atlas-engine.scene.open",

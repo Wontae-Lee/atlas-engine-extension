@@ -40,7 +40,8 @@ export abstract class View implements vscode.TreeDataProvider<vscode.TreeItem>, 
 	 */
 	protected constructor(
 		public readonly id: string,
-		public readonly title: string
+		public readonly title: string,
+		public readonly visibility?: 'visible' | 'collapsed' | 'hidden'
 	) {}
 
 	/**

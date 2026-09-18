@@ -1,4 +1,5 @@
 import type { BackendConnection } from '../backend/backend_types';
+import type { SceneConfig } from './scene_types';
 
 export type Vector3 = [number, number, number];
 export type CollisionModel = 'vhs' | 'vss';
@@ -22,6 +23,12 @@ export interface MoleculeConfig {
 
 export interface SimulationConfig {
 	collision_model?: CollisionModel;
+	buffer_size?: number;
+	solver?: {
+		majorant_sample_pairs: number;
+		majorant_exhaustive_limit: number;
+	};
+	scene?: SceneConfig;
 	dt: number;
 	statistical_weight: number;
 	materials: MoleculeConfig[];

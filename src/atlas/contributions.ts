@@ -7,9 +7,13 @@ import { Backend } from './backend/backend';
 import { Streaming } from './streaming/streaming';
 import { Layout } from './views/layout';
 import { MoleculeCatalog } from './catalog/molecule_catalog';
+import { CaseProject } from './project/case_project';
+import { ProjectEditor } from './project/project_editor';
+import { EditProject } from './commands/edit_project';
 
 export interface Contributions {
 	readonly catalog: MoleculeCatalog;
+	readonly project: CaseProject;
 	readonly backend: Backend;
 	readonly streaming: Streaming;
 	readonly layout: Layout;
@@ -18,12 +22,19 @@ export interface Contributions {
 
 export function createContributions(): Contributions {
 	const backend = new Backend();
-	const layout = new Layout();
+	const catalog = new MoleculeCatalog();
+	const project = new CaseProject(catalog);
+	const streaming = new Streaming(backend);
+	const layout = new Layout(project, streaming);
 	return {
-		catalog: new MoleculeCatalog(),
+		catalog,
+		project,
 		backend,
-		streaming: new Streaming(backend),
+		streaming,
 		layout,
-		commands: [new HelloWorld(), new SelectBackend(backend), new CheckBackend(backend), new ShowLayout(layout)]
+		commands: [
+			new HelloWorld(), new SelectBackend(backend), new CheckBackend(backend), new ShowLayout(layout),
+			new EditProject(new ProjectEditor(project, streaming))
+		]
 	};
 }
