@@ -25,7 +25,6 @@ export abstract class Panel implements vscode.Disposable {
 	 * Construction declares metadata only; no VS Code tab is created here.
 	 */
 	protected constructor(
-	protected constructor(
 		public readonly id: string,
 		public readonly title: string
 	) {}
