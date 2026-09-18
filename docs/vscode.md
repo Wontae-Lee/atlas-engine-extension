@@ -16,10 +16,12 @@ flowchart LR
     A[package.json<br/>기능과 진입점 선언] --> B[VS Code가 명령 표시]
     C[src/extension.ts<br/>TypeScript 구현] -->|esbuild| D[dist/extension.js<br/>실행 번들]
     B -->|사용자가 명령 실행| E[Extension Host]
+    A -->|onStartupFinished| E
     D -->|main 경로에서 로드| E
     E --> F[activate 호출]
     F --> G[System 생성<br/>등록과 최초 update]
     G --> H[명령 처리 함수 실행]
+    G --> J[Backend 최초 연결<br/>저장된 모드 또는 TBB]
     H --> I[vscode API로<br/>알림·파일·UI 조작]
 ```
 
@@ -27,7 +29,9 @@ flowchart LR
 `package.json`의 `viewsContainers`와 `views`가 위치와 뷰를 선언하고,
 `System`이 `Overview`의 부모 `View`를 초기화하여 TreeDataProvider를 등록한다.
 빈 트리에는 `viewsWelcome`에 선언한 환영 문구와 `Hello World` 버튼이 표시된다.
-사이드바를 처음 열거나 명령을 처음 실행하면 확장이 활성화된다.
+`onStartupFinished`로 시작 완료 시 자동 활성화된다.
+그 전에 사이드바를 열거나 명령을 실행해도 활성화될 수 있다.
+최초 `System.update()`는 백엔드 연결을 비동기로 시작하며, 연결 성공을 기다리지 않고 반환한다.
 관련 API는 [공식 Tree View 가이드](https://code.visualstudio.com/api/extension-guides/tree-view)를 참고한다.
 
 확장이 아직 활성화되지 않은 상태에서 사용자가 `Hello World`를 실행하면 다음 순서로 동작한다.
@@ -67,6 +71,7 @@ Node.js API를 사용할 때는 `package.json`의 `engines.vscode`가 지원하�
 atlas-engine-extension/
 ├── package.json                 확장 manifest와 npm 스크립트
 ├── package-lock.json            의존성 버전 고정
+├── config/                      프로젝트 설정·npm 스크립트·의존성 JSONC
 ├── src/
 │   ├── extension.ts             System 생성과 최초 update
 │   └── atlas/
@@ -78,7 +83,10 @@ atlas-engine-extension/
 │       ├── commands/            Command 부모와 명령 구현
 │       └── panels/panel.ts      에디터 패널의 공통 부모
 ├── test/
-│   └── extension.test.ts        VS Code 통합 테스트
+│   ├── extension.test.ts        VS Code 통합 테스트
+│   ├── backend.test.ts          대체 UI·transport를 사용하는 상태 전환 테스트
+│   ├── docker.test.ts           대체 실행 파일을 사용하는 통신 테스트
+│   └── helpers/                 테스트용 클래스, 클래스마다 한 파일
 ├── dist/
 │   ├── extension.js             VS Code가 실제로 실행하는 번들
 │   └── extension.js.map         TypeScript 디버깅용 소스맵
@@ -90,14 +98,24 @@ atlas-engine-extension/
 │   ├── launch.json              VS Code에서 F5 실행할 때의 설정
 │   └── tasks.json               빌드 작업 설정
 ├── scripts/
-│   └── dev.py                   개발 창과 watch 실행
+│   ├── dev.py                   개발 창과 watch 실행
+│   ├── generate_manifest.py     JSONC와 추출한 선언을 JSON으로 병합
+│   └── read_contributions.cjs   구성 모듈 실행과 선언 정보 추출
 └── docs/
+    ├── README.md                문서 안내
     ├── development.md           CLion 개발·실행·디버깅 방법
-    └── vscode-extension-architecture.md
-                                 확장 구조 설명
+    ├── vscode.md                확장 구조 설명
+    ├── manifest.md              클래스 등록과 manifest 생성
+    ├── backend.md               Docker 백엔드 사용과 내부 구현
+    ├── CHANGELOG.md             변경 기록
+    └── guidelines/coding-style.md
+                                 코드 작성 지침
 ```
 
 `src`는 사람이 수정하는 원본이고 `dist`는 빌드 결과다.
+`src/atlas/detail/`은 backend 전용 폴더가 아니라 여러 모듈의 내부 구현을 모으는 곳이다.
+반복되는 공통 함수는 `detail/private_helpers.ts` 하나에 두며, 상태가 있는 클래스는
+클래스 이름에 맞는 별도 snake_case 파일로 관리한다.
 현재 `package.json`의 `main`은 `./dist/extension.js`이므로 VS Code는 `src/extension.ts`를 직접 읽지 않는다.
 코드를 저장했지만 빌드하지 않았거나 개발 창을 Reload하지 않으면 이전 코드가 계속 실행될 수 있다.
 
@@ -107,7 +125,7 @@ atlas-engine-extension/
 VS Code는 이 파일을 먼저 읽어서 확장의 정체, 호환 버전, 진입점과 제공 기능을 파악한다.
 
 명령과 진입점에 해당하는 핵심 부분은 다음과 같다. 사이드바를 선언하는
-`viewsContainers`, `views`, `viewsWelcome`은 이 예시에서 생략했다.
+`viewsContainers`, `views`, `viewsWelcome`과 백엔드 명령 두 개는 이 예시에서 생략했다.
 
 ```json
 {
@@ -117,7 +135,7 @@ VS Code는 이 파일을 먼저 읽어서 확장의 정체, 호환 버전, 진�
   "engines": {
     "vscode": "^1.138.0"
   },
-  "activationEvents": [],
+  "activationEvents": ["onStartupFinished"],
   "main": "./dist/extension.js",
   "contributes": {
     "commands": [
@@ -145,9 +163,8 @@ VS Code는 이 파일을 먼저 읽어서 확장의 정체, 호환 버전, 진�
 같은 명령 ID를 `vscode.commands.registerCommand()`로 구현해야 한다.
 
 현대 VS Code에서는 `commands` 같은 기여점을 선언하면 해당 기능에 필요한 활성화 이벤트가 자동으로 만들어진다.
-그래서 현재 `activationEvents`가 빈 배열이어도 `Hello World` 실행 시 확장이 활성화된다.
-파일 형식, 언어, 워크스페이스 조건 등 별도 시점에 활성화해야 할 때는 명시적인 이벤트가 필요할 수 있다.
-확장을 너무 일찍 활성화하면 시작 시간과 메모리 사용에 영향을 줄 수 있으므로 실제 기능이 필요할 때 활성화하는 편이 좋다.
+이 저장소는 여기에 `onStartupFinished`를 명시하여 시작 시 백엔드 상태 표시줄과 연결을 준비한다.
+활성화 선언의 원본은 `config/package.jsonc`이며 생성된 `package.json`을 직접 수정하지 않는다.
 
 대표적인 기여점은 다음과 같다.
 
@@ -170,7 +187,7 @@ import * as vscode from 'vscode';
 import { System } from './atlas/system/system';
 
 export function activate(context: vscode.ExtensionContext) {
-  const system = new System(vscode);
+  const system = new System(vscode, undefined, context.globalState);
   context.subscriptions.push(system);
   system.update();
 }
@@ -183,11 +200,11 @@ export function deactivate() {}
 확장이 처음 활성화될 때 한 번 호출되는 초기화 함수다.
 이 프로젝트에서는 다음 작업을 System과 그 구성 요소에 위임한다.
 
-- 명령 처리 함수 등록
-- 파일 저장이나 편집기 변경 이벤트 구독
-- Tree View, Webview, 언어 기능 Provider 등록
-- 설정 읽기와 서비스 객체 초기화
-- 확장이 종료될 때 정리할 자원 등록
+- Backend 상태 표시줄과 Output 초기화
+- Overview의 TreeDataProvider와 세 개의 명령 등록
+- 등록된 Panel의 열기 명령 연결. 현재 Panel 목록은 비어 있음
+- 최초 update에서 저장된 백엔드 모드 또는 기본 TBB 연결 시작
+- System을 `context.subscriptions`에 등록하여 종료 시 소유 자원 정리
 
 `activate()`가 오래 걸리면 사용자가 처음 기능을 실행할 때 지연이 생긴다.
 네트워크 요청이나 큰 파일 탐색처럼 무거운 작업은 실제로 필요해질 때 실행하는 방식이 좋다.
@@ -302,13 +319,15 @@ VS Code가 제공하는 파일 시스템 API는 로컬 파일뿐 아니라 SSH, 
 ## System과 공통 부모 클래스
 
 `System`은 엔진의 최상위 실행 객체처럼 구성 요소를 소유한다.
-`update()`의 순서는 사이드바 뷰, 열린 에디터 패널이며 등록 작업은 생성 시 한 번 수행한다.
+`update()`의 순서는 Backend, 사이드바 뷰, 열린 에디터 패널이다.
+Backend는 처음 한 번만 연결을 시작하며, 등록 작업은 System 생성 시 한 번 수행한다.
 VS Code의 명령 이벤트가 실행을 시작하고, 성공적으로 완료되면 다시 update한다.
 
 ```text
 System
+├── Backend   → TBB/CUDA 선택과 연결
 ├── View[]    → Overview extends View
-├── Command[] → HelloWorld extends Command
+├── Command[] → HelloWorld, SelectBackend, CheckBackend
 └── Panel[]   → 앞으로 추가할 에디터 패널
 ```
 
@@ -318,21 +337,21 @@ System
 
 ## 상태와 데이터가 흐르는 방식
 
-기능이 커질수록 UI 처리와 핵심 로직을 분리하는 것이 중요하다.
+현재 백엔드 선택 흐름은 다음과 같다.
 
 ```text
-사용자 입력
+상태 표시줄 또는 명령 팔레트
    ↓
-Command / View / Webview
+SelectBackend.execute()
    ↓
-Service
-   ├── workspace.fs로 파일 접근
-   ├── child_process로 Atlas 엔진 실행
-   └── 설정과 상태 읽기
+Backend.select() → connect()
+   ├── BackendUi: 모드 선택·진행 알림·설치 동의
+   ├── BackendSetup: Docker·이미지·GPU 준비 순서
+   └── DockerBackend: 이미지 관리·ContainerConnection 생성
    ↓
-결과 모델
+새 연결의 info 확인 → 기존 연결 교체 → globalState에 선택 저장
    ↓
-알림 / Output Channel / Tree View / Webview 갱신
+상태 표시줄·Output 갱신 → 명령 완료 후 System.update()
 ```
 
 단순한 성공 메시지는 `showInformationMessage()`로 충분하다.
@@ -345,10 +364,13 @@ Webview는 별도의 HTML/JavaScript 환경이므로 Extension Host와 메시지
 현재 빌드는 다음 경로로 이어진다.
 
 ```text
-src/extension.ts와 import된 파일들
+config/*.jsonc + src/atlas/contributions.ts
+              ↓ manifest 생성
+          package.json
+              ↓ src/extension.ts와 import된 파일 검사
               ↓ TypeScript 타입 검사
           tsc --noEmit
-              ↓ esbuild 번들
+              ↓ ESLint → esbuild 번들
        dist/extension.js
        dist/extension.js.map
               ↓ package.json의 main
@@ -371,13 +393,20 @@ src/extension.ts와 import된 파일들
 | 단위 테스트 | 일반 Node.js | 파서, 모델 변환, 경로 계산 등 순수 로직 |
 | 확장 통합 테스트 | VS Code Extension Host | 명령 등록, 활성화, Workspace API, UI 연동 |
 
-현재 `test/extension.test.ts`는 테스트용 VS Code를 실행해 다음 경로를 확인한다.
+현재 `npm test`는 `pretest`에서 테스트 컴파일과 확장 빌드를 수행한 뒤,
+`.vscode-test.mjs`의 `out/test/**/*.test.js`를 테스트용 VS Code에서 실행한다.
+`test/extension.test.ts`는 다음 경로를 확인한다.
 
 ```text
-확장 로드 → manifest에서 명령 확인 → 명령 실행 → activate 호출 → 확장 활성 상태 확인
+확장 로드 → manifest에서 명령 확인 → 명시적 activate → 명령 실행 → 확장 활성 상태 확인
 ```
 
 이 테스트는 실제 알림의 시각적 모양까지 확인하지 않는다.
+백엔드 선택·검사 명령이 등록되었는지도 확인한다.
+`test/backend.test.ts`는 대체 UI·transport로 상태 전환을,
+`test/docker.test.ts`는 임시 실행 파일로 프로세스·JSON 통신 오류와 취소를 검증한다.
+현재 구성에서는 이 테스트들도 같은 VS Code 테스트 러너로 실행된다.
+확장 활성화에 따른 실제 Docker 연결은 대체 transport 테스트와 별개로 발생할 수 있다.
 UI 문구와 사용자 흐름은 개발용 창에서 직접 확인하고, 핵심 로직은 가능한 한 UI와 분리해 단위 테스트한다.
 
 ## 새 기능을 추가할 때 확인할 것
@@ -389,11 +418,12 @@ UI 문구와 사용자 흐름은 개발용 창에서 직접 확인하고, 핵심
 3. `createContributions()`의 `commands`에 인스턴스를 추가한다. System이 등록과 정리를 담당한다.
 4. 오래 걸리는 동작은 `async`로 만들고 오류와 취소 흐름을 처리한다.
 5. 핵심 로직은 가능하면 VS Code UI 코드와 분리한다.
-6. 통합 테스트나 단위 테스트를 추가한다.
-7. `npm run compile`과 `npm test`를 실행한다.
+6. 변경 동작을 검증할 필요가 있을 때 의미 있는 테스트를 추가한다.
+7. 개발자가 검증할 때는 `npm run compile`과 `npm test`를 실행한다.
 8. 개발용 VS Code에서 Reload한 뒤 실제 사용자 흐름을 확인한다.
 
 개발 창 실행과 CLion 디버거 연결 방법은 [CLion에서 VS Code 확장 개발하기](development.md)를 참고한다.
+에이전트의 빌드·테스트 실행은 [AGENTS.md](../AGENTS.md)의 명시적 요청 규칙을 따른다.
 
 ## 참고 문서
 

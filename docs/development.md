@@ -9,6 +9,7 @@ manifest, 활성화 생명주기와 코드 구성은 [VS Code 확장 구조 이�
 프로젝트 설정은 `config`의 JSONC로 관리하며 `package.json`은 자동 생성한다.
 자세한 방법은 [클래스 기반 확장과 manifest 생성](manifest.md)을 참고한다.
 Docker 이미지 연결과 TBB/CUDA 선택은 [백엔드 사용 방법](backend.md)을 참고한다.
+전체 문서 목록은 [문서 안내](README.md)에 있다.
 
 ## 1. 다음에 다시 시작할 때
 
@@ -31,6 +32,11 @@ npm run dev
 버튼을 클릭하거나 `Ctrl+Shift+P`에서 `Hello World`를 실행한다.
 `Hello World from atlas-engine!` 알림이 나타나면 수동 확인에 성공한 것이다.
 스크립트가 명령을 자동으로 클릭하거나 알림 내용을 검증하는 것은 아니다.
+
+시작 완료 시 확장이 자동 활성화되어 `atlas-engine-backend` 상태 표시줄을 만들고
+저장된 백엔드에 연결한다. 최초 기본값은 TBB이며, 이미지가 없으면 다운로드한다.
+실제 백엔드 연결에는 Docker CLI와 실행 중인 Linux x86-64 Docker 서버가 필요하다.
+Docker 연결 실패는 Output에서 확인하고, 상태 표시줄을 클릭해 다시 연결할 수 있다.
 
 작업을 끝낼 때는 터미널에서 `Ctrl+C`로 watch를 중단하고 개발용 VS Code 창도 닫는다.
 개발 창을 닫는 것만으로 watch가 종료되지는 않는다.
@@ -81,6 +87,7 @@ VS Code 기본 배치에서는 왼쪽에 표시되며, 사용자가 옮긴 위�
 | `src/extension.ts` | System 생성, 종료 시 정리 연결, 최초 update 호출 |
 | `src/atlas/system/system.ts` | 구성 요소 소유, 등록·명령 실행·갱신·정리 제어 |
 | `src/atlas/contributions.ts` | 부모 클래스를 상속한 뷰·명령·패널 인스턴스 구성 |
+| `src/atlas/detail/` | 여러 구성 요소의 내부 구현. 공통 함수는 `private_helpers.ts` 하나로 관리 |
 | `package.json` | 명령 ID·표시 이름, 지원 VS Code 버전, 진입점, npm 명령 |
 | `esbuild.js` | TypeScript를 `dist/extension.js`로 번들링 |
 | `tsconfig.json` | TypeScript 검사·테스트 컴파일 설정 |
@@ -141,7 +148,7 @@ CLion에서 `Run → Edit Configurations → + → Attach to Node.js/Chrome`을 
 | Port | `9230` |
 | Reconnect automatically | 활성화 권장 |
 
-1. `src/extension.ts`의 `showInformationMessage` 줄에 브레이크포인트를 건다.
+1. `src/atlas/commands/hello_world.ts`의 `showInformationMessage` 줄에 브레이크포인트를 건다.
 2. 위 Attach 구성을 선택하고 Debug를 누른다.
 3. 개발용 VS Code에서 `Hello World`를 실행한다.
 4. CLion에서 멈춘 위치, 변수, 호출 스택을 확인한다.
@@ -198,7 +205,7 @@ Script path를 프로젝트의 `scripts/dev.py`로 지정한다.
 # 타입 검사 + lint + 개발 번들 빌드
 npm run compile
 
-# 테스트 컴파일 + 위 검사 + VS Code 내부 통합 테스트
+# 테스트 컴파일 + 위 검사 + 백엔드·통신·VS Code 통합 테스트
 npm test
 ```
 
@@ -207,9 +214,18 @@ npm test
 처음에는 다운로드를 위한 네트워크와 시간이 필요하다. 다운로드·테스트 데이터는 `.vscode-test/`에 저장된다.
 테스트용 VS Code도 `engines.vscode`의 요구 버전을 만족해야 한다.
 
-현재 테스트는 `atlas-engine.helloWorld` 명령이 기여 목록에 있는지 확인하고 실제 실행한다.
-명령 활성화·등록·실행 경로의 실패를 찾는 간단한 통합 테스트이며, 알림의 텍스트나 화면 배치까지 검증하지는 않는다.
-알림 내용은 개발 창에서 수동으로 확인한다.
+현재 `.vscode-test.mjs`는 `out/test/**/*.test.js`를 실행한다.
+
+| 파일 | 검증 대상 |
+| --- | --- |
+| `test/backend.test.ts` | 대체 UI·transport로 기본 TBB, CUDA 동의·전환, 취소·종료 처리 |
+| `test/docker.test.ts` | 임시 실행 파일로 잘못된 JSON, 프로세스 종료·취소, 소유 컨테이너 정리 |
+| `test/extension.test.ts` | Hello World 실행과 백엔드 명령 등록 |
+
+통신 테스트의 대체 실행 파일은 실제 Docker 이미지 성공을 증명하지 않는다.
+반면 통합 테스트는 확장을 활성화하므로 실제 환경에서 시작 백엔드 연결·이미지 다운로드가
+발생할 수 있다. 현재 테스트 파일에는 총 13개 테스트가 있으며, 이 수는 실행 결과가 아니다.
+알림 문구·배치와 실제 TBB/CUDA 실행은 개발 창에서 별도로 확인한다.
 
 GUI가 없는 Linux CI에서는 Xvfb가 설치돼 있다면 다음과 같이 실행할 수 있다.
 
@@ -241,7 +257,9 @@ Congratulations, your extension "atlas-engine" is now active!
 ```
 
 `Extension activated!`만으로는 어떤 확장의 메시지인지 알 수 없다.
-이 프로젝트는 명령을 처음 실행할 때 활성화되므로 창만 열고 활성화 로그가 없다고 실패로 판단하지 않는다.
+현재 `activationEvents`에는 `onStartupFinished`가 있다. 시작 완료 시 자동 활성화되며,
+그 전에 기여된 명령이나 뷰를 사용하면 더 일찍 활성화될 수 있다.
+활성화 로그는 확장 초기화 완료를 뜻하며, 비동기로 진행되는 Docker 연결 성공까지 뜻하지는 않는다.
 
 | 증상 | 확인할 내용 |
 | --- | --- |
@@ -264,7 +282,8 @@ Congratulations, your extension "atlas-engine" is now active!
 | `npm run dev -- --help` | 실행 스크립트 옵션 |
 | `npm run watch` | 창을 열지 않고 자동 빌드·타입 검사만 실행 |
 | `npm run compile` | 타입 검사·lint·개발 빌드 |
-| `npm test` | VS Code 통합 테스트 |
+| `npm test` | 백엔드·통신·VS Code 통합 테스트 |
+| `npm run manifest` | JSONC와 구성 객체로 package.json 재생성 |
 | `npm run package` | 배포용 JavaScript 번들 생성. VSIX 생성·게시 작업은 아님 |
 
 ## 참고 문서

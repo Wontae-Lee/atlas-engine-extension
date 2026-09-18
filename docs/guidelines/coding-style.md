@@ -1,7 +1,7 @@
 # Coding Style
 
 These rules describe how to write and change code in Atlas Engine Extension.
-They do not require an architecture or directory layout.
+Project-specific source and helper placement follows [AGENTS.md](../../AGENTS.md).
 
 ## 1. Scope and Readability
 
@@ -17,6 +17,11 @@ They do not require an architecture or directory layout.
 - Do not split work into many tiny helpers merely to shorten functions.
 - Extract a helper or type when it has a substantial, clearly named
   responsibility.
+- Place internal implementations shared across component areas in
+  `src/atlas/detail/`. Keep repeated helper functions in its single
+  `private_helpers.ts`; do not add parallel helper files for the same purpose.
+- Stateful implementations remain separate classes, one per file. A shared
+  helper file does not replace component ownership or the System execution flow.
 - Follow nearby code conventions where applicable, without importing an
   unrelated module structure.
 

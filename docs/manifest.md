@@ -34,7 +34,7 @@
 `extension.ts`에서는 확장 전체 흐름을 구성하지 않고 `System`에 맡긴다.
 
 ```ts
-const system = new System(vscode);
+const system = new System(vscode, undefined, context.globalState);
 context.subscriptions.push(system);
 system.update();
 ```
@@ -44,13 +44,15 @@ system.update();
 등록과 갱신이 분리되어 있으므로 `update()`를 다시 호출해도 등록을 반복하지 않는다.
 명령이 성공적으로 완료되거나 패널을 여는 명령이 실행되면 `System`이 다시 `update()`를 호출한다.
 VS Code의 이벤트 흐름 안에서 호출하며, 별도의 무한 루프나 주기적 타이머는 사용하지 않는다.
-백엔드는 `Backend`가 소유하며, 실제 이미지 다운로드와 프로세스 실행은 초기화 이후에 시작한다.
+백엔드 연결은 `Backend`가 소유하며, 실제 이미지 다운로드와 프로세스 실행은 최초 update에서 시작한다.
+`context.globalState`는 성공한 백엔드 선택을 다음 실행에 복원하기 위한 저장소다.
 확장 종료 시 VS Code가 `System.dispose()`를 호출하면 소유한 등록과 화면 자원을 정리한다.
 
 ```text
 extension.ts
   └─ System
-       ├─ Command[] → HelloWorld extends Command
+       ├─ Backend   → 선택 상태·연결 수명 관리
+       ├─ Command[] → HelloWorld, SelectBackend, CheckBackend
        ├─ View[]    → Overview extends View
        └─ Panel[]  → 추가할 패널 클래스 extends Panel
 ```
@@ -116,6 +118,22 @@ export class Inspector extends Panel {
 이미 열려 있으면 기존 패널을 표시한다. 뷰용 `views` 선언은 추가하지 않는다.
 `render(webview)`는 HTML을 반환하며, 필요하면 전달받은 Webview로 리소스 URI를 만든다.
 닫힌 패널은 `System.update()`만으로 다시 열리지 않는다.
+
+`command_id`는 getter이므로 `panel.command_id`로 읽고 함수처럼 호출하지 않는다.
+현재 `panels` 목록은 비어 있으므로 위 Inspector는 추가 방법을 설명하는 예시다.
+
+| 단계 | 현재 Panel의 동작 |
+| --- | --- |
+| 생성자 | ID와 제목만 저장. 탭을 만들지 않음 |
+| 열기 명령 | `System`이 `show(api)` 후 `update()` 호출 |
+| `show(api)` | 열린 탭은 reveal, 없으면 첫 에디터 열에 새 WebviewPanel 생성 |
+| `render(webview)` | 동기적으로 HTML 문자열 반환 |
+| `update()` | 열린 탭만 갱신하며 HTML이 같으면 다시 할당하지 않음 |
+| 탭 닫기 | WebviewPanel 참조와 닫기 이벤트 구독 해제. Panel 인스턴스는 유지 |
+| 확장 종료 | `System.dispose()`가 Panel의 이벤트 구독과 열린 탭 정리 |
+
+현재 생성 옵션은 `{}`다. Webview 스크립트 활성화나 메시지 처리 기능은 이 부모에
+구현되어 있지 않으므로 HTML에 JavaScript를 넣기만 해서 상호작용이 연결되지는 않는다.
 
 ## 생성 시 실행 가능한 코드
 
