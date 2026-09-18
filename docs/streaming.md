@@ -24,8 +24,9 @@ flowchart LR
 
 `createContributions()` creates a Backend and a Streaming instance using it.
 Inject that same Streaming into consuming commands or panels. Streaming does not
-call VS Code UI APIs; consumers choose how to display the received data. Overview
-remains empty and no simulation control commands or screens are registered yet.
+call VS Code UI APIs; consumers choose how to display the received data. The
+registered sidebar sections are UI shells and do not
+call Streaming operations.
 
 | File under `src/atlas/` | Responsibility |
 | --- | --- |
@@ -186,6 +187,6 @@ request ordering, pause/resume, stale responses, and failure handling. Docker
 transport tests use a temporary executable. Neither proves that the real Python
 runtime or simulation executes successfully.
 
-The current runtime replacement has not had builds, tests, Docker, or simulations
-executed. See [Development workflow](development.md#checks-and-tests) for the
-available validation procedures.
+Manifest generation, type checking, lint, and bundling passed for the sidebar-only
+UI. Tests, Docker, and real simulations have not validated the current runtime
+replacement. See [Development workflow](development.md#checks-and-tests).

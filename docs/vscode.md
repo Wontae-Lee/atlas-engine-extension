@@ -43,9 +43,9 @@ See [Manifest generation](manifest.md) for the extension points and examples.
 System
 ├── Backend       Docker selection, preparation, and connection lifetime
 ├── Streaming     Simulation session, requests, and result subscriptions
-├── View[]        Overview extends View
+├── View[]        CASE placeholders and eight empty SectionView instances
 ├── Command[]     HelloWorld, SelectBackend, CheckBackend
-└── Panel[]       Empty; concrete editor panels can be added
+└── Panel[]       Empty; no editor windows are registered
 ```
 
 `createContributions()` creates one Backend and one Streaming using that Backend.
@@ -76,9 +76,9 @@ loss before remaining simulation resources are released.
 | `src/atlas/backend/` | Docker backend controller, transport implementation, and contracts |
 | `src/atlas/streaming/` | Engine control and simulation data contracts |
 | `src/atlas/streaming/runtime/` | Python server and persistent Atlas session inside the container |
-| `src/atlas/views/` | Tree View base class and Overview implementation |
+| `src/atlas/views/` | Tree View base, CASE placeholders, and empty sidebar sections |
 | `src/atlas/commands/` | Command base class and executable actions |
-| `src/atlas/panels/` | Editor Webview Panel base class |
+| `src/atlas/panels/` | Unused editor Webview Panel base |
 | `src/atlas/detail/` | Internal implementations used by any component area |
 | `src/atlas/detail/private_helpers.ts` | Single location for repeated internal helper functions |
 | `config/*.jsonc` | Project metadata, npm scripts, and dependencies |
@@ -95,8 +95,10 @@ extraction decisions.
 
 ## UI Boundaries
 
-Overview is an empty tree under the Atlas Engine activity-bar container. Its
-welcome contribution displays the Hello World action. `View.initialize()`
+The ATLAS container has CASE, ASSETS, MATERIALS, GEOMETRY, SOURCES, BOUNDARIES,
+SINKS, SOLVERS, and OUTPUT sections. Overview provides the Overview
+and Domain placeholders within CASE. Other sections use empty SectionView
+instances. There are no open commands or welcome buttons for these sections. `View.initialize()`
 registers its provider, `getChildren()` provides items, and `update()` fires the
 change event. Preserve VS Code-required method names such as `getChildren()` and
 `getTreeItem()` even though project-owned members use snake_case.
@@ -108,7 +110,8 @@ the tab leaves the component instance available for reopening.
 
 The current Panel base uses empty Webview options and has no script messaging
 implementation. Adding HTML containing JavaScript alone does not provide an
-interactive simulation UI. No concrete panel or simulation UI is registered.
+interactive simulation UI. No panels are registered. The current UI consists only of sidebar sections
+without sample entities, file operations, or simulation controls.
 
 Backend uses its own status bar, selection prompts, progress notifications, and
 Output channel. See [Backend](backend.md) for selection and connection behavior.

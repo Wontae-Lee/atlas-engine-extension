@@ -2,9 +2,9 @@
 import type * as vscode from 'vscode';
 
 /**
- * Base for sidebar tree views. Construction only defines metadata for the manifest.
+ * Base for native sidebar and bottom-panel tree views. Construction defines metadata.
  * System supplies the VS Code API during initialization and owns this view's lifetime.
- * Derived views implement their data; registration, refresh events, and cleanup are shared.
+ * Derived views may provide data; empty views inherit the default empty tree.
  *
  * "abstract class" cannot be instantiated directly with new View(...).
  * A concrete subclass uses "extends View" to inherit its fields and method implementations.
@@ -33,19 +33,14 @@ export abstract class View implements vscode.TreeDataProvider<vscode.TreeItem>, 
 	 * A protected constructor is called by subclass constructors through super(...).
 	 * public readonly arguments are parameter properties: they also become instance fields.
 	 * readonly prevents later assignment through TypeScript; it does not freeze the object.
-	 * welcome? is optional; omitting its argument stores undefined.
 	 *
 	 * @param id Unique view ID shared by the generated manifest and runtime registration.
 	 * @param title Display label emitted as the manifest view's name property.
-	 * @param container ID of a container in createContributions().containers.
-	 * @param welcome Optional empty-tree text; a command link on its own line becomes a button.
 	 * No return type is written on a constructor; new on a concrete subclass returns an instance.
 	 */
 	protected constructor(
 		public readonly id: string,
-		public readonly title: string,
-		public readonly container: string,
-		public readonly welcome?: string
+		public readonly title: string
 	) {}
 
 	/**
@@ -87,16 +82,18 @@ export abstract class View implements vscode.TreeDataProvider<vscode.TreeItem>, 
 	}
 
 	/**
-	 * Abstract methods declare a contract without a body; concrete subclasses supply one.
+	 * Derived views override this method when they provide tree items.
 	 * element? is optional, allowing getChildren() to request the root list.
 	 * TreeItem[] means an array of TreeItems. ProviderResult<T> is VS Code's type alias for
 	 * T, undefined, null, or a Thenable resolving to one of those values.
 	 * A Thenable exposes a then method; a JavaScript Promise is compatible with it.
 	 *
-	 * @param element Parent item, or undefined when VS Code requests root items.
+	 * @param _element Parent item, unused by the default empty view.
 	 * @returns Child items immediately or asynchronously; null/undefined also mean no items.
 	 */
-	abstract getChildren(element?: vscode.TreeItem): vscode.ProviderResult<vscode.TreeItem[]>;
+	getChildren(_element?: vscode.TreeItem): vscode.ProviderResult<vscode.TreeItem[]> {
+		return [];
+	}
 
 	/**
 	 * Request that VS Code read the current tree again; no background polling is started.

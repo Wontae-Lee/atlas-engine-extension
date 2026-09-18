@@ -5,6 +5,7 @@
  */
 import type * as vscode from 'vscode';
 import { createContributions, type Contributions } from '../contributions';
+import { error_message } from '../detail/private_helpers';
 
 /**
  * Owns the extension's components and controls registration, command execution, and refresh.
@@ -24,6 +25,7 @@ export class System implements vscode.Disposable {
 	private readonly registrations: vscode.Disposable[] = [];
 	/** TypeScript infers boolean from false; each System instance has its own flag. */
 	private disposed = false;
+	private layout_started = false;
 
 	/**
 	 * Constructor parameter properties combine arguments, field declarations, and assignments:
@@ -61,10 +63,7 @@ export class System implements vscode.Disposable {
 	 */
 	private initialize(): void {
 		this.contributions.backend.initialize(this.api, this.storage);
-		// for...of visits array values, unlike for...in, which visits property keys.
-		for (const view of this.contributions.views) {
-			view.initialize(this.api);
-		}
+		this.contributions.layout.initialize(this.api);
 		for (const command of this.contributions.commands) {
 			// (...args: unknown[]) collects all callback arguments into an array (rest syntax).
 			// unknown accepts any value, but consumers must narrow its type before using it.
@@ -80,18 +79,17 @@ export class System implements vscode.Disposable {
 				return result;
 			}));
 		}
-		for (const panel of this.contributions.panels) {
-			// () => { ... } is a zero-argument callback with a statement body.
-			// It has no return statement, so invoking it yields undefined.
-			this.registrations.push(this.api.commands.registerCommand(panel.command_id, () => {
-				panel.show(this.api);
+		for (const view of this.contributions.layout.center.views) {
+			// The async callback resolves after the native editor is shown and the layout refreshes.
+			this.registrations.push(this.api.commands.registerCommand(view.command_id, async () => {
+				await view.show(this.api);
 				this.update();
 			}));
 		}
 	}
 
 	/**
-	 * Start the initial backend connection, then refresh sidebar data before editor panels.
+	 * Start the initial backend connection, then update the layout's regional views.
 	 * Backend.update() starts only once; repeated updates do not repeat registrations or downloads.
 	 * Derived methods are dispatched through base-class references at runtime.
 	 *
@@ -104,16 +102,19 @@ export class System implements vscode.Disposable {
 			return;
 		}
 		this.contributions.backend.update();
-		for (const view of this.contributions.views) {
-			view.update();
-		}
-		for (const panel of this.contributions.panels) {
-			panel.update();
+		this.contributions.layout.update();
+		if (!this.layout_started) {
+			this.layout_started = true;
+			void this.contributions.layout.show(this.api).catch(error => {
+				if (!this.disposed) {
+					void this.api.window.showErrorMessage(`Atlas layout: ${error_message(error)}`);
+				}
+			});
 		}
 	}
 
 	/**
-	 * Stop the backend and streaming, then release registrations, panels, commands, and views.
+	 * Stop the backend and streaming, then release registrations, commands, and layout views.
 	 * VS Code invokes this via context.subscriptions. This is explicit cleanup, not a C++
 	 * destructor: JavaScript garbage collection does not automatically call dispose().
 	 *
@@ -131,14 +132,9 @@ export class System implements vscode.Disposable {
 		for (const registration of this.registrations.splice(0).reverse()) {
 			registration.dispose();
 		}
-		for (const panel of this.contributions.panels) {
-			panel.dispose();
-		}
 		for (const command of this.contributions.commands) {
 			command.dispose();
 		}
-		for (const view of this.contributions.views) {
-			view.dispose();
-		}
+		this.contributions.layout.dispose();
 	}
 }

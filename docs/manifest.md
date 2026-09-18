@@ -46,7 +46,7 @@ export class Projects extends View {
 ```
 
 Import Projects in `contributions.ts` and add `new Projects()` to `views`, alongside
-`new Overview()`. Its container ID must exist in `containers`. A new view in the
+the existing CASE and section views. Its container ID must exist in `containers`. A new view in the
 existing container does not require another container declaration.
 
 The parent View supplies registration, default `getTreeItem()`, refresh events,

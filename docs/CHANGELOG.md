@@ -7,6 +7,9 @@ Unreleased entries do not indicate publication or a successful validation run.
 
 ### Added
 
+- ATLAS sidebar-only sections for CASE, ASSETS, MATERIALS,
+  GEOMETRY, SOURCES, BOUNDARIES, SINKS, SOLVERS, and OUTPUT, without sample entities
+  or file/simulation operations.
 - Atlas Engine activity bar container and Overview tree view with a Hello World action.
 - Class-based commands, views, and editor panel base coordinated by System.
 - Automatic package.json generation from project JSONC and TypeScript contributions.

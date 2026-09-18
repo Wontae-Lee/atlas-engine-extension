@@ -52,15 +52,17 @@ manifest, runs type checking and lint, builds the bundle, opens an isolated
 VS Code development window, and starts the TypeScript/esbuild watchers.
 A failed initial build prevents the window from opening.
 
-1. Click the Atlas Engine logo in the development window's activity bar.
-2. Open Overview and click **Hello World**, or run it from the command palette.
-3. Confirm the `Hello World from atlas-engine!` notification.
+1. Click the ATLAS logo in the development window's activity bar.
+2. Expand CASE to see the Overview and Domain placeholders.
+3. Expand the other sidebar sections; no editor tab or HTML window is opened.
 4. Inspect `atlas-engine-backend` in the status bar and its Output channel for
    the separate backend connection result.
 
-Overview currently has an empty tree with welcome text. No simulation control
-screen or concrete editor panel is registered yet. The launcher does not click
-commands or verify their results automatically.
+The sidebar contains CASE, ASSETS, MATERIALS, GEOMETRY, SOURCES, BOUNDARIES, SINKS,
+SOLVERS, and OUTPUT in that order. These are UI shells without sample objects,
+file operations, configuration fields, or simulation controls. Hello World remains
+available through the command palette. The launcher does not click commands or
+verify their results automatically.
 
 Startup activation connects to the saved backend, or TBB on first use. It can
 download a missing image. An activation log does not mean this asynchronous
@@ -189,9 +191,9 @@ For Linux environments without a display, if Xvfb is installed:
 xvfb-run -a npm test
 ```
 
-The current Streaming runtime replacement has not been validated by executing
-builds, tests, Docker, or simulations. This documentation update does not change
-that validation status.
+The sidebar-only UI passed manifest generation, type checking, lint, and bundling.
+No test suite or real Docker/simulation validation was run for this update; a
+successful build does not verify engine execution or visual behavior.
 
 ## Troubleshooting
 

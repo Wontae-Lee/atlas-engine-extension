@@ -67,7 +67,7 @@ def main():
         print(f"CLion: Attach to Node.js/Chrome at localhost:{debug_port}", flush=True)
 
     subprocess.run(launch_args, check=True)
-    print("\nIn the development window: Atlas Engine -> Overview -> Hello World")
+    print("\nIn the development window: run Atlas Engine: Show Layout from the Command Palette.")
     print("After edits: save, wait for build completion, then Developer: Reload Window.")
     if not args.no_watch:
         print("Ctrl+C stops the watcher. Close the development window separately.\n", flush=True)

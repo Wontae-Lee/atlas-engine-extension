@@ -52,7 +52,21 @@
       "activitybar": [
         {
           "id": "atlas-engine",
-          "title": "Atlas Engine",
+          "title": "ATLAS",
+          "icon": "media/atlas-engine-logo.svg"
+        }
+      ],
+      "secondarySidebar": [
+        {
+          "id": "atlas-engine-inspector",
+          "title": "ATLAS INSPECTOR",
+          "icon": "media/atlas-engine-logo.svg"
+        }
+      ],
+      "panel": [
+        {
+          "id": "atlas-engine-logs",
+          "title": "LOG",
           "icon": "media/atlas-engine-logo.svg"
         }
       ]
@@ -60,17 +74,63 @@
     "views": {
       "atlas-engine": [
         {
-          "id": "atlas-engine.overview",
-          "name": "Overview"
+          "id": "atlas-engine.domain",
+          "name": "DOMAIN"
+        },
+        {
+          "id": "atlas-engine.assets",
+          "name": "ASSETS"
+        },
+        {
+          "id": "atlas-engine.materials",
+          "name": "MATERIALS"
+        },
+        {
+          "id": "atlas-engine.geometry",
+          "name": "GEOMETRY"
+        },
+        {
+          "id": "atlas-engine.sources",
+          "name": "SOURCES"
+        },
+        {
+          "id": "atlas-engine.boundaries",
+          "name": "BOUNDARIES"
+        },
+        {
+          "id": "atlas-engine.sinks",
+          "name": "SINKS"
+        },
+        {
+          "id": "atlas-engine.solvers",
+          "name": "SOLVERS"
+        },
+        {
+          "id": "atlas-engine.output",
+          "name": "OUTPUT"
+        }
+      ],
+      "atlas-engine-inspector": [
+        {
+          "id": "atlas-engine.inspector",
+          "name": "INSPECTOR"
+        },
+        {
+          "id": "atlas-engine.selection",
+          "name": "SELECTION"
+        },
+        {
+          "id": "atlas-engine.properties",
+          "name": "PROPERTIES"
+        }
+      ],
+      "atlas-engine-logs": [
+        {
+          "id": "atlas-engine.logs",
+          "name": "LOG"
         }
       ]
     },
-    "viewsWelcome": [
-      {
-        "view": "atlas-engine.overview",
-        "contents": "Welcome to Atlas Engine.\n[Hello World](command:atlas-engine.helloWorld)"
-      }
-    ],
     "commands": [
       {
         "command": "atlas-engine.helloWorld",
@@ -83,6 +143,18 @@
       {
         "command": "atlas-engine.backend.check",
         "title": "Atlas Engine: Check Backend"
+      },
+      {
+        "command": "atlas-engine.layout.show",
+        "title": "Atlas Engine: Show Layout"
+      },
+      {
+        "command": "atlas-engine.scene.open",
+        "title": "Atlas Engine: Open Scene"
+      },
+      {
+        "command": "atlas-engine.results.open",
+        "title": "Atlas Engine: Open Results"
       }
     ]
   }

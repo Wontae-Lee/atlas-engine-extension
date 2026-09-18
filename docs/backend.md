@@ -115,6 +115,7 @@ validation of the current Streaming runtime or subsequent refactors:
 - Docker GPU preflight on an RTX 4070 failed because of NVIDIA runtime/CDI setup.
   No CUDA image was downloaded and actual CUDA execution was not verified.
 
-The current runtime replacement has not had builds, tests, Docker, or simulations
-executed. Test doubles validate different contracts from a real engine run; see
+The sidebar-only UI passed manifest generation, type checking, lint, and bundling.
+Tests, Docker, and simulations have not validated the current runtime replacement.
+Test doubles validate different contracts from a real engine run; see
 [Development workflow](development.md#checks-and-tests).
