@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "units": {
+    "mass": "kg per particle",
+    "reference_diameter": "m",
+    "reference_temperature": "K",
+    "viscosity_index": "dimensionless Bird omega; hard sphere = 0.5",
+    "scattering_parameter": "dimensionless alpha; VHS = 1",
+    "temperature_range_k": "K; null means the source gives no fit range",
+    "molecular_energy": "J per particle; supplied by the caller, not a gas constant"
+  },
+  "limitations": [
+    "Neutral species and elastic collision parameters only; no chemistry, ionization or internal energy relaxation model is supplied.",
+    "Reference datasets are starting points, not universal parameter recommendations.",
+    "VHS and VSS fits are independent. Changing alpha alone does not convert a fitted parameter set.",
+    "Atlas uses arithmetic means of species collision parameters for unlike collisions; these are not independently fitted binary interaction data.",
+    "Published pure-gas temperature fit ranges do not validate mixture properties.",
+    "A reference temperature is not a validity interval. No temperature extrapolation is validated by this catalog.",
+    "Some species have only a VHS preset; unavailable VSS coefficients are not invented.",
+    "Preset masses preserve the rounding of their identified mass sources."
+  ]
+}

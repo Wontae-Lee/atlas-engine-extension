@@ -1,5 +1,6 @@
 import * as assert from 'node:assert';
 import { Streaming } from '../src/atlas/streaming/streaming';
+import { MoleculeCatalog } from '../src/atlas/catalog/molecule_catalog';
 import type { ParticleData, SimulationConfig, SimulationSnapshot, StreamingState } from '../src/atlas/streaming/streaming_types';
 import { ConnectionSource } from './helpers/connection_source';
 import { StreamingConnection } from './helpers/streaming_connection';
@@ -57,6 +58,24 @@ suite('Simulation streaming', () => {
 	});
 
 	teardown(() => streaming.dispose());
+
+	for (const model of ['vhs', 'vss'] as const) {
+		test(`Forwards ${model.toUpperCase()} catalog coefficients and solver selection together`, async () => {
+			const catalog = new MoleculeCatalog();
+			const selected = catalog.create_materials([{
+				preset_id: `ar-sparta-argon-${model}`,
+				energy: { translational_energy: 0, rotational_energy: 0, vibrational_energy: 0 }
+			}]);
+			const config = { ...configuration(), ...selected };
+			const pending = streaming.initialize(config);
+			const request = await connection.wait_for_request(0);
+			assert.strictEqual(request.method, 'initialize');
+			assert.deepStrictEqual(request.params, config);
+			assert.strictEqual((request.params as SimulationConfig).collision_model, model);
+			request.resolve(snapshot());
+			await pending;
+		});
+	}
 
 	test('Initializes a session with the complete configuration and publishes its snapshot', async () => {
 		const config = configuration();

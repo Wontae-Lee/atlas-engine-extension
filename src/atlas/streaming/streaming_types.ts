@@ -1,6 +1,7 @@
 import type { BackendConnection } from '../backend/backend_types';
 
 export type Vector3 = [number, number, number];
+export type CollisionModel = 'vhs' | 'vss';
 
 export interface ParticleData {
 	positions: Vector3[];
@@ -20,6 +21,7 @@ export interface MoleculeConfig {
 }
 
 export interface SimulationConfig {
+	collision_model?: CollisionModel;
 	dt: number;
 	statistical_weight: number;
 	materials: MoleculeConfig[];

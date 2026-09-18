@@ -6,8 +6,10 @@ import { ShowLayout } from './commands/show_layout';
 import { Backend } from './backend/backend';
 import { Streaming } from './streaming/streaming';
 import { Layout } from './views/layout';
+import { MoleculeCatalog } from './catalog/molecule_catalog';
 
 export interface Contributions {
+	readonly catalog: MoleculeCatalog;
 	readonly backend: Backend;
 	readonly streaming: Streaming;
 	readonly layout: Layout;
@@ -18,6 +20,7 @@ export function createContributions(): Contributions {
 	const backend = new Backend();
 	const layout = new Layout();
 	return {
+		catalog: new MoleculeCatalog(),
 		backend,
 		streaming: new Streaming(backend),
 		layout,

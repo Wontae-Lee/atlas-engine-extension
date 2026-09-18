@@ -2,7 +2,7 @@ import copy
 import math
 
 import numpy as np
-from atlas import DsmcSolver, Float3, Fluid, MaterialDictionary, Molecule, System, Universe
+from atlas import DsmcKernelType, DsmcSolver, Float3, Fluid, MaterialDictionary, Molecule, System, Universe
 
 
 class EngineSession:
@@ -13,6 +13,13 @@ class EngineSession:
     def initialize(self, config):
         if not isinstance(config, dict):
             raise ValueError("Simulation configuration must be an object.")
+        collision_model = config.get("collision_model", "vhs")
+        if collision_model not in ("vhs", "vss"):
+            raise ValueError("collision_model must be 'vhs' or 'vss'.")
+        kernel_type = (
+            DsmcKernelType.variable_hard_sphere if collision_model == "vhs"
+            else DsmcKernelType.variable_soft_sphere
+        )
         dt = self._number(config.get("dt"), "dt", positive=True)
         weight = self._number(config.get("statistical_weight"), "statistical_weight", positive=True)
         material_configs = config.get("materials")
@@ -60,7 +67,7 @@ class EngineSession:
             statistical_weight=weight, materials=table, species=particles["species"],
         )
         universe = Universe(Float3(*lower.tolist()), Float3(*upper.tolist()), cell_size=cell_size)
-        candidate = System(fluid=fluid, universe=universe, dt=dt, solver=DsmcSolver())
+        candidate = System(fluid=fluid, universe=universe, dt=dt, solver=DsmcSolver(kernel_type=kernel_type))
         result = self._snapshot(candidate)
         self.system = candidate
         self.initial_config = initial_config
