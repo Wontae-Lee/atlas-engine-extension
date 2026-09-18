@@ -7,6 +7,9 @@ publication or a successful validation run.
 
 ### Added
 
+- Documented the deferred visualization performance plan, current JSON snapshot
+  bottleneck candidates, and proposed validation; runtime behavior is unchanged.
+
 - Editable ATLAS sidebar sections: DOMAIN, ASSETS, MATERIALS, GEOMETRY, SOURCES,
   BOUNDARIES, SINKS, SOLVERS, and OUTPUT.
 - Default nitrogen case with a radius-0.5 sphere collider at the origin, a

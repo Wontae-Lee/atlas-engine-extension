@@ -15,6 +15,7 @@ and the documents relevant to the requested change before editing code.
 | Register views/commands and generate package.json | [Manifest generation](docs/manifest.md) |
 | Work on Docker lifecycle, connections, or TBB/CUDA selection | [Backend](docs/backend.md) |
 | Control engine sessions, scene data, snapshots, and output | [Streaming](docs/streaming.md) |
+| Resume planned visualization performance work | [Performance plan](docs/plan.md) |
 | Record implemented changes | [Changelog](docs/CHANGELOG.md) |
 
 ## Essential Development Rules

@@ -11,6 +11,7 @@ For first launch and everyday use, start with the [user guide](../README.md).
 | Select TBB/CUDA and maintain Docker connections | [Backend](backend.md) |
 | Build engine configurations, control sessions, and receive/export results | [Streaming](streaming.md) |
 | Follow naming, class, helper, and comment rules | [Coding style](coding-style.md) |
+| Resume planned visualization performance work | [Performance plan](plan.md) |
 | Review implemented changes | [Changelog](CHANGELOG.md) |
 
 The current UI separates responsibilities: the central Simulation Webview owns
