@@ -1,4 +1,5 @@
 const esbuild = require("esbuild");
+const { execFileSync } = require('node:child_process');
 
 const production = process.argv.includes('--production');
 const watch = process.argv.includes('--watch');
@@ -11,6 +12,7 @@ const esbuildProblemMatcherPlugin = {
 
 	setup(build) {
 		build.onStart(() => {
+			execFileSync('python3', ['scripts/generate_manifest.py'], { cwd: __dirname, stdio: 'inherit' });
 			console.log('[watch] build started');
 		});
 		build.onEnd((result) => {

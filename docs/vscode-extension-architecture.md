@@ -1,5 +1,10 @@
 # VS Code 확장 구조 이해하기
 
+이 저장소의 뷰·명령·패널은 부모 클래스를 상속하고 `src/contributions.ts`에서 인스턴스로 구성한다.
+`extension.ts`가 생성하는 `System`이 이 객체들을 소유하고 실행 순서를 관리한다.
+`package.json`은 클래스 선언과 프로젝트 JSONC 설정을 합친 생성 결과다.
+자세한 절차는 [클래스 기반 확장과 manifest 생성](manifest.md)을 참고한다.
+
 VS Code 확장은 에디터 안에서 직접 실행되는 단일 스크립트라기보다,
 `package.json`으로 기능을 선언하고 Extension Host에서 JavaScript 코드를 실행하는 프로그램이다.
 이 프로젝트는 TypeScript로 작성한 코드를 esbuild로 번들링한 뒤 VS Code가 결과물을 로드한다.
@@ -13,18 +18,25 @@ flowchart LR
     B -->|사용자가 명령 실행| E[Extension Host]
     D -->|main 경로에서 로드| E
     E --> F[activate 호출]
-    F --> G[registerCommand로<br/>명령 처리 함수 등록]
+    F --> G[System 생성<br/>등록과 최초 update]
     G --> H[명령 처리 함수 실행]
     H --> I[vscode API로<br/>알림·파일·UI 조작]
 ```
 
-현재 프로젝트에서 사용자가 `Hello World`를 실행하면 다음 순서로 동작한다.
+현재 프로젝트는 액티비티 바에 `Atlas Engine` 사이드바를 제공한다.
+`package.json`의 `viewsContainers`와 `views`가 위치와 뷰를 선언하고,
+`System`이 `Overview`의 부모 `View`를 초기화하여 TreeDataProvider를 등록한다.
+빈 트리에는 `viewsWelcome`에 선언한 환영 문구와 `Hello World` 버튼이 표시된다.
+사이드바를 처음 열거나 명령을 처음 실행하면 확장이 활성화된다.
+관련 API는 [공식 Tree View 가이드](https://code.visualstudio.com/api/extension-guides/tree-view)를 참고한다.
+
+확장이 아직 활성화되지 않은 상태에서 사용자가 `Hello World`를 실행하면 다음 순서로 동작한다.
 
 1. VS Code가 `package.json`의 `contributes.commands`를 읽고 명령 팔레트에 `Hello World`를 표시한다.
 2. 사용자가 명령을 실행하면 VS Code가 확장의 진입 파일 `dist/extension.js`를 Extension Host에 로드한다.
 3. VS Code가 내보낸 `activate(context)` 함수를 호출한다.
-4. `activate()`가 `atlas-engine.helloWorld` 명령의 처리 함수를 등록한다.
-5. 등록된 처리 함수가 실행되어 알림을 표시한다.
+4. `activate()`가 System을 만들고 `system.update()`를 호출한다. System 생성 중 뷰와 명령을 등록한다.
+5. 등록된 처리 함수가 `HelloWorld.execute()`를 호출해 알림을 표시하고, 완료 후 System이 화면을 갱신한다.
 6. 같은 세션에서 다시 명령을 실행하면 이미 등록된 처리 함수만 호출된다. `activate()`는 매번 다시 실행되지 않는다.
 
 ## VS Code 본체와 Extension Host
@@ -56,9 +68,14 @@ atlas-engine-extension/
 ├── package.json                 확장 manifest와 npm 스크립트
 ├── package-lock.json            의존성 버전 고정
 ├── src/
-│   ├── extension.ts             확장 진입점과 명령 등록
-│   └── test/
-│       └── extension.test.ts    VS Code 통합 테스트
+│   ├── extension.ts             System 생성과 최초 update
+│   ├── contributions.ts         뷰·명령·패널 인스턴스 구성
+│   ├── system/system.ts         전체 소유와 실행 흐름
+│   ├── views/                   View 부모와 Overview 구현
+│   ├── commands/                Command 부모와 HelloWorld 구현
+│   └── panels/panel.ts          에디터 패널의 공통 부모
+├── test/
+│   └── extension.test.ts        VS Code 통합 테스트
 ├── dist/
 │   ├── extension.js             VS Code가 실제로 실행하는 번들
 │   └── extension.js.map         TypeScript 디버깅용 소스맵
@@ -70,7 +87,7 @@ atlas-engine-extension/
 │   ├── launch.json              VS Code에서 F5 실행할 때의 설정
 │   └── tasks.json               빌드 작업 설정
 ├── scripts/
-│   └── dev.sh                   개발 창과 watch 실행
+│   └── dev.py                   개발 창과 watch 실행
 └── docs/
     ├── development.md           CLion 개발·실행·디버깅 방법
     └── vscode-extension-architecture.md
@@ -86,7 +103,8 @@ atlas-engine-extension/
 `package.json`은 npm 설정인 동시에 VS Code 확장의 manifest다.
 VS Code는 이 파일을 먼저 읽어서 확장의 정체, 호환 버전, 진입점과 제공 기능을 파악한다.
 
-현재 핵심 부분은 다음과 같다.
+명령과 진입점에 해당하는 핵심 부분은 다음과 같다. 사이드바를 선언하는
+`viewsContainers`, `views`, `viewsWelcome`은 이 예시에서 생략했다.
 
 ```json
 {
@@ -146,16 +164,12 @@ VS Code는 이 파일을 먼저 읽어서 확장의 정체, 호환 버전, 진�
 
 ```ts
 import * as vscode from 'vscode';
+import { System } from './system/system';
 
 export function activate(context: vscode.ExtensionContext) {
-  const disposable = vscode.commands.registerCommand(
-    'atlas-engine.helloWorld',
-    () => {
-      vscode.window.showInformationMessage('Hello World from atlas-engine!');
-    },
-  );
-
-  context.subscriptions.push(disposable);
+  const system = new System(vscode);
+  context.subscriptions.push(system);
+  system.update();
 }
 
 export function deactivate() {}
@@ -164,7 +178,7 @@ export function deactivate() {}
 ### `activate(context)`
 
 확장이 처음 활성화될 때 한 번 호출되는 초기화 함수다.
-보통 여기에서는 다음 작업을 한다.
+이 프로젝트에서는 다음 작업을 System과 그 구성 요소에 위임한다.
 
 - 명령 처리 함수 등록
 - 파일 저장이나 편집기 변경 이벤트 구독
@@ -222,9 +236,10 @@ Extension Host가 확장을 종료할 때 정리가 필요하면 사용한다.
 
 ## 선언과 구현은 한 쌍이다
 
-새 명령 하나에는 보통 다음 두 부분이 모두 필요하다.
+새 명령 하나에는 선언과 구현이 모두 필요하다. 아래 예시는 VS Code API의 기본 원리다.
+현재 저장소에서는 `Command` 인스턴스의 정보로 선언을 생성하고 System이 처리 함수를 등록한다.
 
-`package.json`에 명령을 선언한다.
+생성되는 `package.json`에는 다음과 같은 명령 선언이 들어간다.
 
 ```json
 {
@@ -239,7 +254,7 @@ Extension Host가 확장을 종료할 때 정리가 필요하면 사용한다.
 }
 ```
 
-`src/extension.ts`에 같은 ID의 처리 함수를 등록한다.
+런타임에서는 같은 ID의 처리 함수를 등록한다. 기본 API 사용 예시는 다음과 같다.
 
 ```ts
 const disposable = vscode.commands.registerCommand(
@@ -281,61 +296,22 @@ VS Code가 제공하는 파일 시스템 API는 로컬 파일뿐 아니라 SSH, 
 확장이 원격 환경을 지원해야 한다면 Node.js의 `fs`와 로컬 경로를 무조건 사용하는 방식보다
 `vscode.workspace.fs`와 `vscode.Uri`를 우선 검토한다.
 
-## 프로젝트가 커질 때의 권장 구조
+## System과 공통 부모 클래스
 
-지금 규모에서는 `extension.ts` 하나로 충분하다.
-명령과 UI가 늘어나면 `extension.ts`에는 조립 코드만 두고 기능별 구현을 분리하는 편이 관리하기 쉽다.
+`System`은 엔진의 최상위 실행 객체처럼 구성 요소를 소유한다.
+`update()`의 순서는 사이드바 뷰, 열린 에디터 패널이며 등록 작업은 생성 시 한 번 수행한다.
+VS Code의 명령 이벤트가 실행을 시작하고, 성공적으로 완료되면 다시 update한다.
 
 ```text
-src/
-├── extension.ts                 전체 기능을 조립하고 등록
-├── commands/
-│   ├── buildProject.ts          프로젝트 빌드 명령
-│   └── openProject.ts           프로젝트 선택 명령
-├── services/
-│   ├── atlasEngine.ts           Atlas 프로세스 실행과 통신
-│   └── projectDiscovery.ts      프로젝트 검색
-├── providers/
-│   └── projectTreeProvider.ts   사이드바 Tree View 데이터
-├── webviews/
-│   └── dashboardPanel.ts        Webview 생성과 메시지 처리
-├── models/
-│   └── project.ts               공유 타입과 데이터 모델
-└── test/
-    ├── extension.test.ts        실제 VS Code가 필요한 통합 테스트
-    └── projectDiscovery.test.ts VS Code 의존성이 적은 로직 테스트
+System
+├── View[]    → Overview extends View
+├── Command[] → HelloWorld extends Command
+└── Panel[]   → 앞으로 추가할 에디터 패널
 ```
 
-예를 들어 명령 등록 함수를 다음처럼 분리할 수 있다.
-
-```ts
-// src/commands/registerCommands.ts
-import * as vscode from 'vscode';
-
-export function registerCommands(context: vscode.ExtensionContext): void {
-  context.subscriptions.push(
-    vscode.commands.registerCommand('atlas-engine.helloWorld', () => {
-      vscode.window.showInformationMessage('Hello World from atlas-engine!');
-    }),
-  );
-}
-```
-
-```ts
-// src/extension.ts
-import * as vscode from 'vscode';
-import { registerCommands } from './commands/registerCommands';
-
-export function activate(context: vscode.ExtensionContext): void {
-  registerCommands(context);
-}
-
-export function deactivate(): void {}
-```
-
-분리 기준은 파일 크기보다 책임이다.
-명령은 사용자 동작을 받아 서비스에 전달하고, 서비스는 핵심 로직과 외부 프로세스 통신을 담당하게 만든다.
-이렇게 하면 VS Code API에 직접 의존하지 않는 로직을 빠른 단위 테스트로 검증하기 쉬워진다.
+공통 부모가 등록·갱신·정리 또는 실행 계약을 제공하고 개별 클래스가 자기 동작을 구현한다.
+`createContributions()`는 이 객체들을 조립하는 함수로, 런타임과 manifest 생성이 함께 사용한다.
+사용법과 새 클래스 예시는 [클래스 기반 확장과 manifest 생성](manifest.md)에 정리되어 있다.
 
 ## 상태와 데이터가 흐르는 방식
 
@@ -392,7 +368,7 @@ src/extension.ts와 import된 파일들
 | 단위 테스트 | 일반 Node.js | 파서, 모델 변환, 경로 계산 등 순수 로직 |
 | 확장 통합 테스트 | VS Code Extension Host | 명령 등록, 활성화, Workspace API, UI 연동 |
 
-현재 `src/test/extension.test.ts`는 테스트용 VS Code를 실행해 다음 경로를 확인한다.
+현재 `test/extension.test.ts`는 테스트용 VS Code를 실행해 다음 경로를 확인한다.
 
 ```text
 확장 로드 → manifest에서 명령 확인 → 명령 실행 → activate 호출 → 확장 활성 상태 확인
@@ -405,9 +381,9 @@ UI 문구와 사용자 흐름은 개발용 창에서 직접 확인하고, 핵심
 
 새 명령을 기준으로 하면 다음 순서가 안전하다.
 
-1. `package.json`의 적절한 `contributes` 항목에 기능을 선언한다.
-2. `extension.ts` 또는 `commands` 모듈에서 같은 ID로 구현을 등록한다.
-3. 반환된 `Disposable`을 `context.subscriptions`에 추가한다.
+1. `Command`를 상속하고 생성자에 ID와 제목을 선언한다.
+2. `execute(api, ...args)`에 동작을 구현한다.
+3. `createContributions()`의 `commands`에 인스턴스를 추가한다. System이 등록과 정리를 담당한다.
 4. 오래 걸리는 동작은 `async`로 만들고 오류와 취소 흐름을 처리한다.
 5. 핵심 로직은 가능하면 VS Code UI 코드와 분리한다.
 6. 통합 테스트나 단위 테스트를 추가한다.

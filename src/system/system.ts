@@ -1,0 +1,137 @@
+/**
+ * Type-only namespace import: this file describes API types without loading vscode itself.
+ * The mixed import below loads createContributions but erases the Contributions type import.
+ * "../" selects the parent directory relative to this source file.
+ */
+import type * as vscode from 'vscode';
+import { createContributions, type Contributions } from '../contributions';
+
+/**
+ * Owns the extension's components and controls registration, command execution, and refresh.
+ * Like the engine's System, update() makes the component execution order explicit.
+ * VS Code drives events; this system does not start a simulation loop or a backend process.
+ *
+ * "class" defines instances with state and methods. "implements vscode.Disposable"
+ * asks the type checker to verify the dispose contract; it does not inherit implementation.
+ * Members without an access modifier are public. "private" restricts access in TypeScript;
+ * it is not JavaScript's runtime-private #field syntax.
+ */
+export class System implements vscode.Disposable {
+	/**
+	 * An initially empty, mutable array of registration handles owned by this instance.
+	 * readonly forbids replacing the field, but push/splice may still mutate this array.
+	 */
+	private readonly registrations: vscode.Disposable[] = [];
+	/** TypeScript infers boolean from false; each System instance has its own flag. */
+	private disposed = false;
+
+	/**
+	 * Constructor parameter properties combine arguments, field declarations, and assignments:
+	 * "private readonly api: typeof vscode" creates this.api from the supplied argument.
+	 * In this type position, typeof describes the module API's type; it is not a runtime check.
+	 * The default initializer runs only if contributions is omitted or explicitly undefined.
+	 *
+	 * @param api The live API supplied by extension.ts, not acquired by the generator.
+	 * @param contributions Component instances whose lifetime this System takes ownership of.
+	 * @throws Initialization errors after attempting to clean up resources already acquired.
+	 * Constructors have no return-type annotation; new System(...) returns the new instance.
+	 */
+	constructor(
+		private readonly api: typeof vscode,
+		private readonly contributions: Contributions = createContributions()
+	) {
+		try {
+			// this denotes the current System instance. Initialization registers components once.
+			this.initialize();
+		} catch (error) {
+			// catch receives a thrown error; throw forwards it instead of reporting success.
+			this.dispose();
+			throw error;
+		}
+	}
+
+	/**
+	 * Registers views and the callbacks that VS Code will invoke for command IDs.
+	 * A callback is stored now and executed later; registering it does not execute the command.
+	 *
+	 * @returns Nothing. ": void" means callers should not expect a useful result.
+	 * @throws Errors from a component's initialization or the VS Code registration API.
+	 */
+	private initialize(): void {
+		// for...of visits array values, unlike for...in, which visits property keys.
+		for (const view of this.contributions.views) {
+			view.initialize(this.api);
+		}
+		for (const command of this.contributions.commands) {
+			// (...args: unknown[]) collects all callback arguments into an array (rest syntax).
+			// unknown accepts any value, but consumers must narrow its type before using it.
+			// An arrow function keeps the surrounding this, so this.update() refers to System.
+			// async makes the callback return a Promise even when the command returns a plain value.
+			this.registrations.push(this.api.commands.registerCommand(command.id, async (...args: unknown[]) => {
+				// ...args here expands the array into positional arguments (spread syntax).
+				// await unwraps a value or Promise; it suspends this callback, not the host thread.
+				// A rejection throws here, so the following update is skipped on command failure.
+				const result = await command.execute(this.api, ...args);
+				this.update();
+				// Resolves the callback's Promise with the command result for its caller.
+				return result;
+			}));
+		}
+		for (const panel of this.contributions.panels) {
+			// () => { ... } is a zero-argument callback with a statement body.
+			// It has no return statement, so invoking it yields undefined.
+			this.registrations.push(this.api.commands.registerCommand(panel.commandId, () => {
+				panel.show(this.api);
+				this.update();
+			}));
+		}
+	}
+
+	/**
+	 * Refresh sidebar data before editor panels, without repeating registrations.
+	 * Derived methods are dispatched through base-class references at runtime.
+	 *
+	 * @returns Nothing, including when the disposed guard exits early with bare return.
+	 * @throws Propagates component update errors; this method does not silently ignore them.
+	 */
+	update(): void {
+		// An asynchronous command can finish after the extension has been disposed.
+		if (this.disposed) {
+			return;
+		}
+		for (const view of this.contributions.views) {
+			view.update();
+		}
+		for (const panel of this.contributions.panels) {
+			panel.update();
+		}
+	}
+
+	/**
+	 * Release registrations first, then panels, command-owned resources, and views.
+	 * VS Code invokes this via context.subscriptions. This is explicit cleanup, not a C++
+	 * destructor: JavaScript garbage collection does not automatically call dispose().
+	 *
+	 * @returns Nothing. Repeated calls return immediately after the first call sets disposed.
+	 */
+	dispose(): void {
+		if (this.disposed) {
+			return;
+		}
+		this.disposed = true;
+		// splice(0) removes and returns every element, leaving the owned array empty.
+		// reverse() reverses that returned array, releasing the newest registration first.
+		for (const registration of this.registrations.splice(0).reverse()) {
+			registration.dispose();
+		}
+		for (const panel of this.contributions.panels) {
+			panel.dispose();
+		}
+		for (const command of this.contributions.commands) {
+			command.dispose();
+		}
+		for (const view of this.contributions.views) {
+			view.dispose();
+		}
+	}
+}

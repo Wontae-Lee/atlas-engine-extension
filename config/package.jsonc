@@ -1,0 +1,30 @@
+/**
+ * Source for extension metadata. Edit JSONC files under config, not package.json.
+ * generate_manifest.py reads this file first, then merges the other JSONC files.
+ * Objects merge recursively; arrays concatenate; conflicting scalar values fail.
+ * Comments and trailing commas are removed from the generated JSON.
+ */
+{
+    // Machine-readable package name; changing it can affect extension identity and tooling.
+    "name": "atlas-engine",
+    // Human-readable name shown in the Extensions UI, independent of the sidebar title.
+    "displayName": "atlas-engine",
+    // Short summary displayed in the extension listing.
+    "description": "",
+    // Release version. Keep package-lock.json metadata in sync when changing it.
+    "version": "0.0.1",
+    "engines": {
+        // Compatible VS Code versions; the extension uses APIs available in this range.
+        "vscode": "^1.138.0"
+    },
+    // Marketplace categories, not Activity Bar containers or sidebar sections.
+    "categories": [
+        "Other"
+    ],
+    // Contributed commands and views activate this extension automatically on supported VS Code versions.
+    // Add explicit events here only when another activation trigger is needed.
+    "activationEvents": [],
+    // Extension Host entry point produced by esbuild from src/extension.ts.
+    // VS Code loads this JavaScript bundle, not the TypeScript source directly.
+    "main": "./dist/extension.js"
+}

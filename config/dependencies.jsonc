@@ -1,0 +1,34 @@
+/**
+ * Source for npm dependency declarations and dependency-tree overrides.
+ * After editing, generate package.json and run npm install to update package-lock.json.
+ * npm install does not copy changes from package.json back into this file.
+ * These are development tools and typings; VS Code supplies the vscode runtime API.
+ */
+{
+    "devDependencies": {
+        // VS Code API types; keep API usage compatible with engines.vscode in package.jsonc.
+        "@types/vscode": "^1.138.0",
+        // Types for the Mocha suite/test functions used by integration tests.
+        "@types/mocha": "^10.0.10",
+        // Node.js types for compilation; this does not select the Extension Host's Node version.
+        "@types/node": "24.x",
+        // TypeScript integration for ESLint, followed by the lint engine itself.
+        "typescript-eslint": "^8.61.1",
+        "eslint": "^10.5.0",
+        // Bundles src/extension.ts into dist/extension.js.
+        "esbuild": "^0.28.1",
+        // Runs the bundler and type-check watchers concurrently.
+        "npm-run-all": "^4.1.5",
+        // Checks TypeScript and emits JavaScript for integration tests.
+        "typescript": "^6.0.3",
+        // Test CLI configuration/runner and the VS Code download/launch support it uses.
+        "@vscode/test-cli": "^0.0.15",
+        "@vscode/test-electron": "^3.0.0"
+    },
+    // Constrain packages within npm's dependency tree, including transitive dependencies.
+    // Keep lockfile changes with edits here so npm ci can reproduce the resolved versions.
+    "overrides": {
+        "diff": "^8.0.4",
+        "serialize-javascript": "^7.0.6"
+    }
+}

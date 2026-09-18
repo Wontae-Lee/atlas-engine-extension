@@ -20,7 +20,8 @@ examples unless the user explicitly asks to adopt them.
 - Keep implementation concise and direct. Avoid abstractions that hide the
   flow without clarifying a substantial responsibility.
 - Do not add comments unless requested. When writing or changing comments,
-  write them in English and follow the linked coding style.
+  write them in English unless the user requests another language, and follow
+  the linked coding style.
 - Keep documentation accurate when an intentional change affects the behavior
   it describes. Keep user-facing usage separate from contributor instructions.
 - Do not carry over C++ engine rules for backends, bindings, generated headers,

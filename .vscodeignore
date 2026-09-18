@@ -1,6 +1,7 @@
 .vscode/**
 .vscode-dev/**
 scripts/**
+config/**
 docs/**
 .vscode-test/**
 out/**

@@ -11,31 +11,6 @@
   ],
   "activationEvents": [],
   "main": "./dist/extension.js",
-  "contributes": {
-    "commands": [
-      {
-        "command": "atlas-engine.helloWorld",
-        "title": "Hello World"
-      }
-    ]
-  },
-  "scripts": {
-    "dev": "bash scripts/dev.sh",
-    "dev:debug": "bash scripts/dev.sh --debug",
-    "dev:debug:break": "bash scripts/dev.sh --debug-break",
-    "vscode:prepublish": "npm run package",
-    "compile": "npm run check-types && npm run lint && node esbuild.js",
-    "watch": "npm-run-all -p watch:*",
-    "watch:esbuild": "node esbuild.js --watch",
-    "watch:tsc": "tsc --noEmit --watch --project tsconfig.json",
-    "package": "npm run check-types && npm run lint && node esbuild.js --production",
-    "compile-tests": "tsc -p . --outDir out",
-    "watch-tests": "tsc -p . -w --outDir out",
-    "pretest": "npm run compile-tests && npm run compile && npm run lint",
-    "check-types": "tsc --noEmit",
-    "lint": "eslint src",
-    "test": "vscode-test"
-  },
   "devDependencies": {
     "@types/vscode": "^1.138.0",
     "@types/mocha": "^10.0.10",
@@ -51,5 +26,54 @@
   "overrides": {
     "diff": "^8.0.4",
     "serialize-javascript": "^7.0.6"
+  },
+  "scripts": {
+    "dev": "python3 scripts/dev.py",
+    "dev:debug": "python3 scripts/dev.py --debug",
+    "dev:debug:break": "python3 scripts/dev.py --debug-break",
+    "vscode:prepublish": "npm run package",
+    "compile": "npm run manifest && npm run check-types && npm run lint && node esbuild.js",
+    "watch": "npm-run-all -p watch:*",
+    "watch:esbuild": "npm run manifest && node esbuild.js --watch",
+    "watch:tsc": "tsc --noEmit --watch --project tsconfig.json",
+    "package": "npm run manifest && npm run check-types && npm run lint && node esbuild.js --production",
+    "compile-tests": "tsc -p . --outDir out",
+    "watch-tests": "tsc -p . -w --outDir out",
+    "pretest": "npm run compile-tests && npm run compile && npm run lint",
+    "check-types": "tsc --noEmit",
+    "lint": "eslint src",
+    "test": "vscode-test",
+    "manifest": "python3 scripts/generate_manifest.py"
+  },
+  "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "atlas-engine",
+          "title": "Atlas Engine",
+          "icon": "media/atlas-engine-logo.svg"
+        }
+      ]
+    },
+    "views": {
+      "atlas-engine": [
+        {
+          "id": "atlas-engine.overview",
+          "name": "Overview"
+        }
+      ]
+    },
+    "viewsWelcome": [
+      {
+        "view": "atlas-engine.overview",
+        "contents": "Welcome to Atlas Engine.\n[Hello World](command:atlas-engine.helloWorld)"
+      }
+    ],
+    "commands": [
+      {
+        "command": "atlas-engine.helloWorld",
+        "title": "Hello World"
+      }
+    ]
   }
 }

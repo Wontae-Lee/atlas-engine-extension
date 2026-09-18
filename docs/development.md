@@ -4,6 +4,10 @@
 브레이크포인트는 CLion의 Node.js 디버거를 Extension Host에 연결해서 사용한다.
 `src/extension.ts`를 일반 Node.js 프로그램처럼 직접 실행하지 않는다. `vscode` API는 VS Code가 제공한다.
 manifest, 활성화 생명주기와 코드 구성은 [VS Code 확장 구조 이해하기](vscode-extension-architecture.md)를 참고한다.
+뷰·명령·패널은 공통 부모를 상속하고 `src/contributions.ts`에서 인스턴스를 구성한다.
+`extension.ts`는 `System`을 생성하고 `system.update()`를 호출하며, 실제 흐름은 `System`이 관리한다.
+프로젝트 설정은 `config`의 JSONC로 관리하며 `package.json`은 자동 생성한다.
+자세한 방법은 [클래스 기반 확장과 manifest 생성](manifest.md)을 참고한다.
 
 ## 1. 다음에 다시 시작할 때
 
@@ -17,11 +21,13 @@ npm run dev
 
 1. Node.js, npm, VS Code CLI를 확인한다.
 2. `node_modules`가 없으면 `npm ci`로 의존성을 설치한다.
-3. 타입 검사, ESLint 검사, esbuild 빌드를 실행한다. 실패하면 개발 창을 열지 않는다.
+3. 클래스 선언과 JSONC로 manifest를 생성하고 타입 검사, ESLint 검사, esbuild 빌드를 실행한다. 실패하면 개발 창을 열지 않는다.
 4. 별도 설정과 확장 저장소를 사용하는 개발용 VS Code 창을 연다.
 5. TypeScript 검사와 esbuild를 watch 모드로 실행한다.
 
-개발 창에서 `Ctrl+Shift+P`를 누르고 `Hello World`를 실행한다.
+개발 창 왼쪽 액티비티 바에서 `Atlas Engine` 로고를 클릭한다.
+사이드바의 `Overview`에 환영 문구와 `Hello World` 버튼이 표시된다.
+버튼을 클릭하거나 `Ctrl+Shift+P`에서 `Hello World`를 실행한다.
 `Hello World from atlas-engine!` 알림이 나타나면 수동 확인에 성공한 것이다.
 스크립트가 명령을 자동으로 클릭하거나 알림 내용을 검증하는 것은 아니다.
 
@@ -30,11 +36,12 @@ npm run dev
 
 ## 2. 처음 한 번 설정하기
 
-현재 스크립트는 Bash를 사용하는 Linux/macOS용이다. 이 저장소의 개발 환경은 Linux다.
-`sh scripts/dev.sh`로 실행된 경우에도 스크립트가 Bash로 다시 실행한다. Bash는 설치되어 있어야 한다.
+현재 스크립트는 Python 3를 사용하는 Linux/macOS용이다. 이 저장소의 개발 환경은 Linux다.
+외부 Python 패키지는 필요하지 않으며 `python3` 명령을 사용할 수 있어야 한다.
 
 ```bash
 node --version
+python3 --version
 npm --version
 code --version
 npm ci
@@ -60,21 +67,31 @@ VSCODE_BIN=/snap/bin/code npm run dev
 
 ## 3. 파일별 역할
 
+사이드바는 `package.json`의 `contributes.viewsContainers.activitybar`에 등록되어 있다.
+`contributes.views`가 `atlas-engine.overview` 뷰를 연결하고,
+`System`이 `View.initialize()`를 호출하여 해당 ID의 TreeDataProvider를 등록한다.
+현재 트리는 비어 있으므로 `contributes.viewsWelcome`의 환영 문구와 버튼을 표시한다.
+항목을 추가하려면 `src/views/overview.ts`의 `getChildren()`에서 `TreeItem` 목록을 반환한다.
+사이드바를 처음 열어도 확장이 활성화되며, 등록한 provider는 확장 종료 시 해제된다.
+VS Code 기본 배치에서는 왼쪽에 표시되며, 사용자가 옮긴 위치는 VS Code가 기억한다.
+
 | 파일 | 역할 |
 | --- | --- |
-| `src/extension.ts` | `activate()`에서 명령을 등록하고 실제 기능을 구현 |
+| `src/extension.ts` | System 생성, 종료 시 정리 연결, 최초 update 호출 |
+| `src/system/system.ts` | 구성 요소 소유, 등록·명령 실행·갱신·정리 제어 |
+| `src/contributions.ts` | 부모 클래스를 상속한 뷰·명령·패널 인스턴스 구성 |
 | `package.json` | 명령 ID·표시 이름, 지원 VS Code 버전, 진입점, npm 명령 |
 | `esbuild.js` | TypeScript를 `dist/extension.js`로 번들링 |
 | `tsconfig.json` | TypeScript 검사·테스트 컴파일 설정 |
-| `scripts/dev.sh` | 빌드 후 개발용 VS Code 실행, 선택적으로 디버깅 포트 개방, watch 시작 |
-| `src/test/extension.test.ts` | VS Code 내부에서 실행하는 통합 테스트 |
+| `scripts/dev.py` | 빌드 후 개발용 VS Code 실행, 선택적으로 디버깅 포트 개방, watch 시작 |
+| `test/extension.test.ts` | VS Code 내부에서 실행하는 통합 테스트 |
 | `.vscode-test.mjs` | 자동 테스트 러너 설정 |
 | `.vscode/launch.json` | VS Code 자체에서 F5로 실행할 때 사용하는 설정 |
 
 현재 `Hello World`의 명령 ID는 `atlas-engine.helloWorld`다.
-새 명령을 추가할 때는 `package.json`의 `contributes.commands`와
-`extension.ts`의 `vscode.commands.registerCommand()`에서 같은 ID를 사용한다.
-등록한 disposable은 `context.subscriptions`에 추가한다.
+새 명령은 `Command`를 상속하고 생성자에 ID와 제목을 선언한다.
+`createContributions()`의 `commands`에 인스턴스를 추가하면 manifest 생성과 System 등록이 연결된다.
+등록 핸들은 System이 소유하고, System 자체를 `context.subscriptions`에 넣어 종료 시 정리한다.
 
 VS Code는 `package.json`의 `main`에 지정한 `dist/extension.js`를 로드한다.
 개발 빌드는 `.map` 파일을 생성해서 CLion이 TypeScript 소스에 브레이크포인트를 연결할 수 있게 한다.
@@ -169,11 +186,10 @@ DEBUG_PORT=9231 npm run dev:debug
 npm 실행 자체를 Debug하는 것과 Extension Host에 Attach하는 것은 대상 프로세스가 다르다.
 watch는 계속 실행되는 작업이므로 Attach 구성의 완료 대기용 Before launch 작업으로 넣지 않는다.
 
-CLion의 Shell Script 구성으로 직접 실행하려면 Interpreter를 `/bin/bash`,
-Script path를 프로젝트의 `scripts/dev.sh`로 지정한다.
-터미널에서는 `bash scripts/dev.sh`로도 실행할 수 있다.
-`set: Illegal option -o pipefail`은 Bash용 스크립트를 `sh`로 실행할 때 발생하는 오류다.
-현재 스크립트는 시작 시 Bash로 전환해서 이 문제를 처리한다.
+터미널에서는 `python3 scripts/dev.py`로 직접 실행할 수도 있다.
+기존 Shell Script 실행 구성을 사용했다면 위의 npm 실행 구성으로 변경한다.
+Python 실행 구성을 사용하는 경우 인터프리터를 Python 3로,
+Script path를 프로젝트의 `scripts/dev.py`로 지정한다.
 
 ## 7. 자동 테스트와 검사
 

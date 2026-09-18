@@ -54,7 +54,9 @@ They do not require an architecture, directory layout, or file-splitting pattern
 Do not add comments unless requested. When comments are requested or an existing
 comment needs to be updated:
 
-- Write comments in English.
+- Write comments in English unless the user requests another language.
+- Keep code identifiers, API names, and file paths in their original form
+  within explanations.
 - Use `/** ... */` for multi-line documentation and `//` for notes inside a
   function.
 - Explain what the signature or code cannot show, rather than restating names
