@@ -1,4 +1,7 @@
 .vscode/**
+.vscode-dev/**
+scripts/**
+docs/**
 .vscode-test/**
 out/**
 node_modules/**
