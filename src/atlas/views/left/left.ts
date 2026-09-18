@@ -26,8 +26,8 @@ export class Left extends ViewContainer {
 			new Sources(project),
 			new Boundaries(project),
 			new Sinks(project),
-			new Solvers(project, streaming),
-			new Output(project)
+			new Solvers(project),
+			new Output(project, streaming)
 		]);
 	}
 

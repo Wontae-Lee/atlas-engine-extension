@@ -103,6 +103,11 @@ export class CaseProject {
 		return () => { this.listeners.delete(listener); };
 	}
 
+	mark_applied(revision: number): void {
+		this.applied_revision = revision;
+		for (const listener of this.listeners) { listener(); }
+	}
+
 	assets_changed(): void {
 		this.current_revision++;
 		for (const listener of this.listeners) {

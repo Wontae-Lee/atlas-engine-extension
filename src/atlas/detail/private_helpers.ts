@@ -25,6 +25,27 @@ export function error_message(error: unknown): string {
 	return error instanceof Error ? error.message : String(error);
 }
 
+export function snapshot_statistics(snapshot: SimulationSnapshot): {
+	mean_speed?: number; rms_speed?: number; species: { index: number; count: number }[];
+} {
+	let speed = 0;
+	let square_speed = 0;
+	const counts = new Map<number, number>();
+	for (let index = 0; index < snapshot.particle_count; index++) {
+		const velocity = snapshot.velocities[index];
+		const squared = velocity[0] ** 2 + velocity[1] ** 2 + velocity[2] ** 2;
+		speed += Math.sqrt(squared);
+		square_speed += squared;
+		const species = snapshot.species[index];
+		counts.set(species, (counts.get(species) ?? 0) + 1);
+	}
+	return {
+		mean_speed: snapshot.particle_count ? speed / snapshot.particle_count : undefined,
+		rms_speed: snapshot.particle_count ? Math.sqrt(square_speed / snapshot.particle_count) : undefined,
+		species: [...counts].sort(([left], [right]) => left - right).map(([index, count]) => ({ index, count }))
+	};
+}
+
 export function cancelled(): Error {
 	const error = new Error('Backend operation cancelled.');
 	error.name = 'AbortError';

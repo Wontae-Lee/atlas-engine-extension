@@ -13,12 +13,14 @@ export class Layout implements vscode.Disposable {
 	private disposed = false;
 	readonly left: Left;
 	readonly right: Right;
-	readonly bottom = new Bottom();
-	readonly center = new Center();
+	readonly bottom: Bottom;
+	readonly center: Center;
 
 	constructor(project: CaseProject, streaming: Streaming) {
 		this.left = new Left(project, streaming);
 		this.right = new Right(project, streaming);
+		this.bottom = new Bottom(streaming);
+		this.center = new Center(project, streaming);
 	}
 
 	get containers(): readonly ViewContainer[] {
@@ -29,10 +31,11 @@ export class Layout implements vscode.Disposable {
 		return [...this.containers.flatMap(container => container.views), ...this.center.views];
 	}
 
-	initialize(api: typeof vscode): void {
-		for (const view of this.views) {
+	initialize(api: typeof vscode, extension_uri?: vscode.Uri): void {
+		for (const view of this.containers.flatMap(container => container.views)) {
 			view.initialize(api);
 		}
+		for (const view of this.center.views) { view.initialize(api, extension_uri); }
 	}
 
 	update(): void {
@@ -42,6 +45,12 @@ export class Layout implements vscode.Disposable {
 	}
 
 	async show(api: typeof vscode): Promise<void> {
+		const editor_ids = new Set(this.center.views.map(view => view.id));
+		editor_ids.add('atlas-engine.results');
+		const old_tabs = api.window.tabGroups.all.flatMap(group => group.tabs).filter(tab =>
+			(tab.input instanceof api.TabInputText && editor_ids.has(tab.input.uri.scheme))
+			|| (tab.input instanceof api.TabInputWebview && tab.input.viewType === 'atlas-engine.results'));
+		if (old_tabs.length) { await api.window.tabGroups.close(old_tabs); }
 		for (const container of [this.left, this.right, this.bottom.containers[0]]) {
 			if (this.disposed) {
 				return;

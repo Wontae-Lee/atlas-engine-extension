@@ -7,6 +7,7 @@ const production = process.argv.includes('--production');
 const watch = process.argv.includes('--watch');
 const runtime_files = ['engine_session.py', 'engine_server.py', 'engine_scene.py'];
 const runtime_directory = path.join(__dirname, 'src/atlas/streaming/runtime');
+const webview_directory = path.join(__dirname, 'src/atlas/views/center/webview');
 
 /**
  * @type {import('esbuild').Plugin}
@@ -60,11 +61,47 @@ async function main() {
 			esbuildProblemMatcherPlugin,
 		],
 	});
+	const webview = await esbuild.context({
+		entryPoints: {
+			scene: path.join(webview_directory, 'scene_main.ts'),
+		},
+		bundle: true,
+		format: 'iife',
+		platform: 'browser',
+		target: 'es2022',
+		outdir: 'dist/webview',
+		minify: production,
+		sourcemap: !production,
+		sourcesContent: false,
+		plugins: [{
+			name: 'webview-assets',
+			setup(build) {
+				const stylesheet = path.join(webview_directory, 'simulation.css');
+				build.onLoad({ filter: /[\\/]webview[\\/]scene_main\.ts$/ }, args => ({
+					contents: fs.readFileSync(args.path, 'utf8'), loader: 'ts', watchFiles: [stylesheet]
+				}));
+				build.onEnd(result => {
+					if (result.errors.length === 0) {
+						const destination = path.join(__dirname, 'dist/webview');
+						fs.mkdirSync(destination, { recursive: true });
+						fs.copyFileSync(stylesheet, path.join(destination, 'simulation.css'));
+						for (const name of ['results.js', 'results.js.map']) {
+							fs.rmSync(path.join(destination, name), { force: true });
+						}
+						console.log('[webview] build finished');
+					}
+				});
+			}
+		}]
+	});
 	if (watch) {
-		await ctx.watch();
+		await Promise.all([ctx.watch(), webview.watch()]);
 	} else {
-		await ctx.rebuild();
-		await ctx.dispose();
+		try {
+			await Promise.all([ctx.rebuild(), webview.rebuild()]);
+		} finally {
+			await Promise.all([ctx.dispose(), webview.dispose()]);
+		}
 	}
 }
 

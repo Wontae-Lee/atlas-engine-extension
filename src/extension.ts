@@ -23,14 +23,13 @@ import { System } from './atlas/system/system';
  * @throws Propagates an error if System construction or its initial update fails.
  */
 export function activate(context: vscode.ExtensionContext) {
-	const system = new System(vscode, undefined, context.globalState, context.workspaceState);
+	const system = new System(vscode, undefined, context.globalState, context.workspaceState, context.extensionUri);
 	// const prevents assigning another value to "system"; it does not freeze the object.
 	// new calls the constructor and produces an instance. Its inferred type is System.
 	// push adds that instance to the array. Its numeric return value (new length) is ignored.
 	context.subscriptions.push(system);
 	system.update();
 	// The dot selects a member; parentheses invoke a method. update() returns void.
-	console.log('Congratulations, your extension "atlas-engine" is now active!');
 }
 
 /**

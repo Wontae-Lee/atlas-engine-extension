@@ -43,7 +43,8 @@ export class System implements vscode.Disposable {
 		private readonly api: typeof vscode,
 		private readonly contributions: Contributions = createContributions(),
 		private readonly storage?: vscode.Memento,
-		private readonly workspace_storage?: vscode.Memento
+		private readonly workspace_storage?: vscode.Memento,
+		private readonly extension_uri?: vscode.Uri
 	) {
 		try {
 			// this denotes the current System instance. Initialization registers components once.
@@ -65,13 +66,14 @@ export class System implements vscode.Disposable {
 	private initialize(): void {
 		this.contributions.project.initialize(this.api, this.workspace_storage);
 		this.contributions.backend.initialize(this.api, this.storage);
-		this.contributions.layout.initialize(this.api);
+		this.contributions.layout.initialize(this.api, this.extension_uri);
 		const refresh = () => this.contributions.layout.update();
 		const refresh_simulation = () => {
-			this.contributions.layout.left.views.find(view => view.id === 'atlas-engine.solvers')?.update();
+			this.contributions.layout.left.views.find(view => view.id === 'atlas-engine.output')?.update();
 			for (const view of this.contributions.layout.right.views) {
 				view.update();
 			}
+			for (const view of this.contributions.layout.center.views) { view.update(); }
 		};
 		this.registrations.push(
 			{ dispose: this.contributions.project.on_change(refresh) },
@@ -98,7 +100,7 @@ export class System implements vscode.Disposable {
 			}));
 		}
 		for (const view of this.contributions.layout.center.views) {
-			// The async callback resolves after the native editor is shown and the layout refreshes.
+			// The async callback resolves after the Webview editor is shown and the layout refreshes.
 			this.registrations.push(this.api.commands.registerCommand(view.command_id, async () => {
 				await view.show(this.api);
 				this.update();

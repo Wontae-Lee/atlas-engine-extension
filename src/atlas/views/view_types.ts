@@ -23,7 +23,7 @@ export interface EntryDefinition {
 
 export interface ViewAction {
 	section: ProjectSection;
-	action: 'add' | 'edit' | 'remove' | 'rename' | 'replace' | 'reveal' | 'preset' | 'apply' | 'start' | 'pause' | 'step' | 'reset';
+	action: 'add' | 'edit' | 'remove' | 'rename' | 'replace' | 'reveal' | 'preset' | 'export';
 	id?: string;
 	field?: string;
 }

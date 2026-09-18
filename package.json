@@ -126,10 +126,6 @@
     },
     "commands": [
       {
-        "command": "atlas-engine.helloWorld",
-        "title": "Hello World"
-      },
-      {
         "command": "atlas-engine.backend.select",
         "title": "Atlas Engine: Select Backend"
       },
@@ -147,11 +143,7 @@
       },
       {
         "command": "atlas-engine.scene.open",
-        "title": "Atlas Engine: Open Scene"
-      },
-      {
-        "command": "atlas-engine.results.open",
-        "title": "Atlas Engine: Open Results"
+        "title": "Atlas Engine: Open Simulation"
       }
     ]
   }

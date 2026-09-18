@@ -3,7 +3,7 @@ import { empty_project } from './helpers/empty_project';
 import type * as vscode from 'vscode';
 import { MoleculeCatalog } from '../src/atlas/catalog/molecule_catalog';
 import { CaseProject } from '../src/atlas/project/case_project';
-import { Solvers } from '../src/atlas/views/left/solvers';
+import { Scene } from '../src/atlas/views/center/scene';
 import { Streaming } from '../src/atlas/streaming/streaming';
 import type { SimulationConfig, SimulationSnapshot } from '../src/atlas/streaming/streaming_types';
 import { ConnectionSource } from './helpers/connection_source';
@@ -16,11 +16,11 @@ function snapshot(): SimulationSnapshot {
 	};
 }
 
-suite('Solver view simulation controls', () => {
+suite('Simulation view controls', () => {
 	let connection: StreamingConnection;
 	let streaming: Streaming;
 	let project: CaseProject;
-	let solvers: Solvers;
+	let scene: Scene;
 	let api: typeof vscode;
 	let confirmation: string | undefined;
 	let warnings: string[];
@@ -61,7 +61,7 @@ suite('Solver view simulation controls', () => {
 			state.sinks.push({ id: 'sink', name: 'Sink', kind: 'tracing', fields: { geometry_id: 'sphere' } });
 			state.output.enabled = true;
 		});
-		solvers = new Solvers(project, streaming);
+		scene = new Scene(project, streaming);
 		confirmation = 'Apply';
 		warnings = [];
 		api = {
@@ -75,13 +75,13 @@ suite('Solver view simulation controls', () => {
 	});
 
 	teardown(() => {
-		solvers.dispose();
+		scene.dispose();
 		streaming.dispose();
 		project.dispose();
 	});
 
 	async function begin_apply(index: number) {
-		const pending = solvers.execute(api, { section: 'solvers', action: 'apply' });
+		const pending = scene.execute(api, 'apply');
 		const request = await Promise.race([
 			connection.wait_for_request(index),
 			pending.then(() => { throw new Error('Apply completed without sending an initialize request.'); })
@@ -154,7 +154,7 @@ suite('Solver view simulation controls', () => {
 		const previous = streaming.last_snapshot;
 		const applied = project.applied_revision;
 		confirmation = undefined;
-		await solvers.execute(api, { section: 'solvers', action: 'apply' });
+		await scene.execute(api, 'apply');
 		assert.strictEqual(warnings.length, 1);
 		assert.strictEqual(connection.requests.length, 1);
 		assert.strictEqual(streaming.last_snapshot, previous);
@@ -165,7 +165,7 @@ suite('Solver view simulation controls', () => {
 	test('Changing a case after Apply blocks Start until the new revision is applied', async () => {
 		await apply_initial();
 		await project.change(state => { state.solver.dt = 2e-6; });
-		await assert.rejects(solvers.execute(api, { section: 'solvers', action: 'start' }), /Apply the current case/);
+		await assert.rejects(scene.execute(api, 'start'), /Apply the current case/);
 		assert.strictEqual(connection.requests.length, 1);
 		assert.strictEqual(streaming.state, 'ready');
 	});

@@ -1,5 +1,4 @@
 import type { Command } from './commands/command';
-import { HelloWorld } from './commands/hello_world';
 import { SelectBackend } from './commands/select_backend';
 import { CheckBackend } from './commands/check_backend';
 import { ShowLayout } from './commands/show_layout';
@@ -32,7 +31,7 @@ export function createContributions(): Contributions {
 		streaming,
 		layout,
 		commands: [
-			new HelloWorld(), new SelectBackend(backend), new CheckBackend(backend), new ShowLayout(layout),
+			new SelectBackend(backend), new CheckBackend(backend), new ShowLayout(layout),
 			new EditProject(layout.left)
 		]
 	};
