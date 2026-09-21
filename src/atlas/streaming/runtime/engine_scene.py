@@ -1,9 +1,8 @@
+import atlas
 import math
+import numpy as np
 import tempfile
 from pathlib import Path
-
-import atlas
-import numpy as np
 
 
 class EngineScene:
@@ -119,12 +118,15 @@ class EngineScene:
             length = float(np.linalg.norm(normal.astype(np.float64)))
             return atlas.Plane(self._normal(fields), self._scalar(fields, "offset") / length)
         if kind == "circle":
-            return atlas.Circle(self._float3(fields, "center"), self._normal(fields), self._scalar(fields, "radius", positive=True))
+            return atlas.Circle(self._float3(fields, "center"), self._normal(fields),
+                                self._scalar(fields, "radius", positive=True))
         if kind == "square":
-            return atlas.Square(self._float3(fields, "center"), self._normal(fields), self._scalar(fields, "side_length", positive=True))
+            return atlas.Square(self._float3(fields, "center"), self._normal(fields),
+                                self._scalar(fields, "side_length", positive=True))
         if kind == "triangle":
             vertices = [self.vector(fields.get(key), key) for key in ("a", "b", "c")]
-            if np.linalg.norm(np.cross(vertices[1].astype(np.float64) - vertices[0], vertices[2].astype(np.float64) - vertices[0])) == 0:
+            if np.linalg.norm(np.cross(vertices[1].astype(np.float64) - vertices[0],
+                                       vertices[2].astype(np.float64) - vertices[0])) == 0:
                 raise ValueError("Triangle vertices must not be collinear.")
             return atlas.Triangle(*(atlas.Float3(*vertex.tolist()) for vertex in vertices))
         if kind == "polygonal_prism":

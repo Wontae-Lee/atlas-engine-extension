@@ -1,8 +1,7 @@
-import json
-import sys
-
 import atlas
+import json
 import numpy as np
+import sys
 from atlas import Float3, Fluid, _core
 from atlas.math import dot
 
@@ -29,7 +28,8 @@ class EngineServer:
                     result = self._dispatch(request)
                     response = json.dumps({"id": request_id, "result": result}, allow_nan=False)
                 except Exception as error:
-                    response = json.dumps({"id": request_id, "error": str(error) or type(error).__name__}, allow_nan=False)
+                    response = json.dumps({"id": request_id, "error": str(error) or type(error).__name__},
+                                          allow_nan=False)
                 print(response, file=self.protocol, flush=True)
         finally:
             self.session.close()

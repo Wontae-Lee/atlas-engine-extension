@@ -1,6 +1,5 @@
 import copy
 import math
-
 import numpy as np
 from atlas import DsmcKernelType, DsmcSolver, Float3, Fluid, MaterialDictionary, Molecule, System, Universe
 
@@ -87,7 +86,8 @@ class EngineSession:
             universe = Universe(Float3(*lower.tolist()), Float3(*upper.tolist()), cell_size=cell_size)
             candidate = System(
                 fluid=fluid, universe=universe, dt=dt,
-                solver=DsmcSolver(kernel_type=kernel_type, majorant_sample_pairs=sample_pairs, majorant_exhaustive_limit=exhaustive_limit),
+                solver=DsmcSolver(kernel_type=kernel_type, majorant_sample_pairs=sample_pairs,
+                                  majorant_exhaustive_limit=exhaustive_limit),
                 **scene_arguments,
             )
             result = self._snapshot(candidate)
@@ -182,8 +182,10 @@ class EngineSession:
         if any(type(index) is not int or not 0 <= index < material_count for index in species):
             raise ValueError("Every species id must be an integer indexing the material dictionary.")
         return {
-            "positions": np.array([self._vector(row, "positions") for row in positions], dtype=np.float32).reshape(count, 3),
-            "velocities": np.array([self._vector(row, "velocities") for row in velocities], dtype=np.float32).reshape(count, 3),
+            "positions": np.array([self._vector(row, "positions") for row in positions], dtype=np.float32).reshape(
+                count, 3),
+            "velocities": np.array([self._vector(row, "velocities") for row in velocities], dtype=np.float32).reshape(
+                count, 3),
             "species": np.array(species, dtype=np.uint64),
         }
 
@@ -191,7 +193,8 @@ class EngineSession:
     def _check_positions(positions, lower, cell_size):
         with np.errstate(over="ignore", invalid="ignore", divide="ignore"):
             coordinates = np.floor((positions - lower) * (np.float32(1.0) / np.float32(cell_size)))
-        if not np.all(np.isfinite(coordinates)) or np.any(coordinates < -2_147_483_648) or np.any(coordinates >= 2_147_483_647):
+        if not np.all(np.isfinite(coordinates)) or np.any(coordinates < -2_147_483_648) or np.any(
+                coordinates >= 2_147_483_647):
             raise ValueError("Particle positions exceed the engine's integer grid-coordinate range.")
 
     @staticmethod

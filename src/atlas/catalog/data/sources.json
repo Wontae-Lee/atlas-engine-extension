@@ -1,73 +1,73 @@
 [
-  {
-    "id": "piclas-reference",
-    "title": "PICLas archived REF_DSMC neutral-species VHS inputs",
-    "urls": [
-      "https://github.com/piclas-framework/piclas/blob/ad358ac7c47711f90f1b33b07c9fd8d9cafdfe03/tools/species_database/archive/REF_DSMC.ini",
-      "https://piclas.readthedocs.io/en/stable/userguide/features-and-models/DSMC.html"
-    ],
-    "retrieved_on": "2026-09-18",
-    "notes": [
-      "Mass, dref and Tref retain source SI values. Atlas viscosity_index = PICLas omega + 0.5; alpha = 1 for VHS.",
-      "Archived reference inputs, not a universal calibrated database. No temperature fit ranges are specified.",
-      "The source's inconsistent Xe species numbering and charged species are excluded."
-    ]
-  },
-  {
-    "id": "sparta-air",
-    "title": "SPARTA air VSS reference inputs",
-    "urls": [
-      "https://github.com/sparta/sparta/blob/e071055fca6ccd250d4b894dadb7ff64d6e6fcac/data/air.vss",
-      "https://github.com/sparta/sparta/blob/e071055fca6ccd250d4b894dadb7ff64d6e6fcac/data/air.species",
-      "https://sparta.github.io/doc/collide.html"
-    ],
-    "retrieved_on": "2026-09-18",
-    "notes": [
-      "Collision coefficients and masses come from matching air files; SI values retained.",
-      "Only neutral species and elastic coefficients are included. No fit temperature interval specified."
-    ]
-  },
-  {
-    "id": "sparta-mars",
-    "title": "SPARTA Mars/Venus VSS reference inputs",
-    "urls": [
-      "https://github.com/sparta/sparta/blob/e071055fca6ccd250d4b894dadb7ff64d6e6fcac/data/mars.vss",
-      "https://github.com/sparta/sparta/blob/e071055fca6ccd250d4b894dadb7ff64d6e6fcac/data/mars.species"
-    ],
-    "retrieved_on": "2026-09-18",
-    "notes": [
-      "Matching species and collision files; SI values retained.",
-      "SPARTA attributes collision parameters to Swaminathan-Gopalan (2015). No fit temperature interval specified.",
-      "Relaxation and reaction coefficients are not imported."
-    ]
-  },
-  {
-    "id": "sparta-argon",
-    "title": "SPARTA independent argon VHS and VSS reference inputs",
-    "urls": [
-      "https://github.com/sparta/sparta/blob/e071055fca6ccd250d4b894dadb7ff64d6e6fcac/data/ar.vhs",
-      "https://github.com/sparta/sparta/blob/e071055fca6ccd250d4b894dadb7ff64d6e6fcac/data/ar.vss",
-      "https://github.com/sparta/sparta/blob/e071055fca6ccd250d4b894dadb7ff64d6e6fcac/data/ar.species"
-    ],
-    "retrieved_on": "2026-09-18",
-    "notes": [
-      "Each model retains its own reference diameter; masses use ar.species.",
-      "No fit temperature interval specified."
-    ]
-  },
-  {
-    "id": "weaver-2015",
-    "title": "Weaver and Alexeenko (2015), revised pure-gas VSS fits",
-    "urls": [
-      "https://doi.org/10.1063/1.4921245",
-      "https://sites.google.com/view/rgdart/facilities/guide/revisedvss-lj",
-      "https://github.com/piclas-framework/piclas/blob/ad358ac7c47711f90f1b33b07c9fd8d9cafdfe03/tools/species_database/archive/REF_DSMC.ini"
-    ],
-    "retrieved_on": "2026-09-18",
-    "notes": [
-      "Table 1 d_ref in angstrom is multiplied by 1e-10; omega, alpha, T_ref and per-gas fit intervals are retained.",
-      "Masses are separately taken from the pinned PICLas reference input, not from this paper.",
-      "The included subset is H2, He, N2, O2 and Ar. These are self-collision fits, not unlike-species fits."
-    ]
-  }
+    {
+        "id": "piclas-reference",
+        "title": "PICLas archived REF_DSMC neutral-species VHS inputs",
+        "urls": [
+            "https://github.com/piclas-framework/piclas/blob/ad358ac7c47711f90f1b33b07c9fd8d9cafdfe03/tools/species_database/archive/REF_DSMC.ini",
+            "https://piclas.readthedocs.io/en/stable/userguide/features-and-models/DSMC.html"
+        ],
+        "retrieved_on": "2026-09-18",
+        "notes": [
+            "Mass, dref and Tref retain source SI values. Atlas viscosity_index = PICLas omega + 0.5; alpha = 1 for VHS.",
+            "Archived reference inputs, not a universal calibrated database. No temperature fit ranges are specified.",
+            "The source's inconsistent Xe species numbering and charged species are excluded."
+        ]
+    },
+    {
+        "id": "sparta-air",
+        "title": "SPARTA air VSS reference inputs",
+        "urls": [
+            "https://github.com/sparta/sparta/blob/e071055fca6ccd250d4b894dadb7ff64d6e6fcac/data/air.vss",
+            "https://github.com/sparta/sparta/blob/e071055fca6ccd250d4b894dadb7ff64d6e6fcac/data/air.species",
+            "https://sparta.github.io/doc/collide.html"
+        ],
+        "retrieved_on": "2026-09-18",
+        "notes": [
+            "Collision coefficients and masses come from matching air files; SI values retained.",
+            "Only neutral species and elastic coefficients are included. No fit temperature interval specified."
+        ]
+    },
+    {
+        "id": "sparta-mars",
+        "title": "SPARTA Mars/Venus VSS reference inputs",
+        "urls": [
+            "https://github.com/sparta/sparta/blob/e071055fca6ccd250d4b894dadb7ff64d6e6fcac/data/mars.vss",
+            "https://github.com/sparta/sparta/blob/e071055fca6ccd250d4b894dadb7ff64d6e6fcac/data/mars.species"
+        ],
+        "retrieved_on": "2026-09-18",
+        "notes": [
+            "Matching species and collision files; SI values retained.",
+            "SPARTA attributes collision parameters to Swaminathan-Gopalan (2015). No fit temperature interval specified.",
+            "Relaxation and reaction coefficients are not imported."
+        ]
+    },
+    {
+        "id": "sparta-argon",
+        "title": "SPARTA independent argon VHS and VSS reference inputs",
+        "urls": [
+            "https://github.com/sparta/sparta/blob/e071055fca6ccd250d4b894dadb7ff64d6e6fcac/data/ar.vhs",
+            "https://github.com/sparta/sparta/blob/e071055fca6ccd250d4b894dadb7ff64d6e6fcac/data/ar.vss",
+            "https://github.com/sparta/sparta/blob/e071055fca6ccd250d4b894dadb7ff64d6e6fcac/data/ar.species"
+        ],
+        "retrieved_on": "2026-09-18",
+        "notes": [
+            "Each model retains its own reference diameter; masses use ar.species.",
+            "No fit temperature interval specified."
+        ]
+    },
+    {
+        "id": "weaver-2015",
+        "title": "Weaver and Alexeenko (2015), revised pure-gas VSS fits",
+        "urls": [
+            "https://doi.org/10.1063/1.4921245",
+            "https://sites.google.com/view/rgdart/facilities/guide/revisedvss-lj",
+            "https://github.com/piclas-framework/piclas/blob/ad358ac7c47711f90f1b33b07c9fd8d9cafdfe03/tools/species_database/archive/REF_DSMC.ini"
+        ],
+        "retrieved_on": "2026-09-18",
+        "notes": [
+            "Table 1 d_ref in angstrom is multiplied by 1e-10; omega, alpha, T_ref and per-gas fit intervals are retained.",
+            "Masses are separately taken from the pinned PICLas reference input, not from this paper.",
+            "The included subset is H2, He, N2, O2 and Ar. These are self-collision fits, not unlike-species fits."
+        ]
+    }
 ]

@@ -1,82 +1,82 @@
 [
-  {
-    "id": "h2-weaver-2015-vss",
-    "species": "H2",
-    "name": "Hydrogen",
-    "collision_model": "vss",
-    "source_id": "weaver-2015",
-    "mass": 3.348e-27,
-    "reference_diameter": 2.9016e-10,
-    "reference_temperature": 296,
-    "viscosity_index": 0.689,
-    "scattering_parameter": 1.37,
-    "temperature_range_k": [
-      20,
-      2200
-    ]
-  },
-  {
-    "id": "he-weaver-2015-vss",
-    "species": "He",
-    "name": "Helium",
-    "collision_model": "vss",
-    "source_id": "weaver-2015",
-    "mass": 6.646582791431e-27,
-    "reference_diameter": 2.298e-10,
-    "reference_temperature": 350,
-    "viscosity_index": 0.712,
-    "scattering_parameter": 1.429,
-    "temperature_range_k": [
-      140,
-      2000
-    ]
-  },
-  {
-    "id": "n2-weaver-2015-vss",
-    "species": "N2",
-    "name": "Nitrogen",
-    "collision_model": "vss",
-    "source_id": "weaver-2015",
-    "mass": 4.652e-26,
-    "reference_diameter": 3.8705e-10,
-    "reference_temperature": 353.15,
-    "viscosity_index": 0.686,
-    "scattering_parameter": 1.365,
-    "temperature_range_k": [
-      50,
-      2200
-    ]
-  },
-  {
-    "id": "o2-weaver-2015-vss",
-    "species": "O2",
-    "name": "Oxygen",
-    "collision_model": "vss",
-    "source_id": "weaver-2015",
-    "mass": 5.314e-26,
-    "reference_diameter": 3.8631e-10,
-    "reference_temperature": 298.15,
-    "viscosity_index": 0.7154,
-    "scattering_parameter": 1.2929,
-    "temperature_range_k": [
-      50,
-      2200
-    ]
-  },
-  {
-    "id": "ar-weaver-2015-vss",
-    "species": "Ar",
-    "name": "Argon",
-    "collision_model": "vss",
-    "source_id": "weaver-2015",
-    "mass": 6.6336270594e-26,
-    "reference_diameter": 3.5645e-10,
-    "reference_temperature": 523.15,
-    "viscosity_index": 0.697,
-    "scattering_parameter": 1.311,
-    "temperature_range_k": [
-      90,
-      2200
-    ]
-  }
+    {
+        "id": "h2-weaver-2015-vss",
+        "species": "H2",
+        "name": "Hydrogen",
+        "collision_model": "vss",
+        "source_id": "weaver-2015",
+        "mass": 3.348e-27,
+        "reference_diameter": 2.9016e-10,
+        "reference_temperature": 296,
+        "viscosity_index": 0.689,
+        "scattering_parameter": 1.37,
+        "temperature_range_k": [
+            20,
+            2200
+        ]
+    },
+    {
+        "id": "he-weaver-2015-vss",
+        "species": "He",
+        "name": "Helium",
+        "collision_model": "vss",
+        "source_id": "weaver-2015",
+        "mass": 6.646582791431e-27,
+        "reference_diameter": 2.298e-10,
+        "reference_temperature": 350,
+        "viscosity_index": 0.712,
+        "scattering_parameter": 1.429,
+        "temperature_range_k": [
+            140,
+            2000
+        ]
+    },
+    {
+        "id": "n2-weaver-2015-vss",
+        "species": "N2",
+        "name": "Nitrogen",
+        "collision_model": "vss",
+        "source_id": "weaver-2015",
+        "mass": 4.652e-26,
+        "reference_diameter": 3.8705e-10,
+        "reference_temperature": 353.15,
+        "viscosity_index": 0.686,
+        "scattering_parameter": 1.365,
+        "temperature_range_k": [
+            50,
+            2200
+        ]
+    },
+    {
+        "id": "o2-weaver-2015-vss",
+        "species": "O2",
+        "name": "Oxygen",
+        "collision_model": "vss",
+        "source_id": "weaver-2015",
+        "mass": 5.314e-26,
+        "reference_diameter": 3.8631e-10,
+        "reference_temperature": 298.15,
+        "viscosity_index": 0.7154,
+        "scattering_parameter": 1.2929,
+        "temperature_range_k": [
+            50,
+            2200
+        ]
+    },
+    {
+        "id": "ar-weaver-2015-vss",
+        "species": "Ar",
+        "name": "Argon",
+        "collision_model": "vss",
+        "source_id": "weaver-2015",
+        "mass": 6.6336270594e-26,
+        "reference_diameter": 3.5645e-10,
+        "reference_temperature": 523.15,
+        "viscosity_index": 0.697,
+        "scattering_parameter": 1.311,
+        "temperature_range_k": [
+            90,
+            2200
+        ]
+    }
 ]

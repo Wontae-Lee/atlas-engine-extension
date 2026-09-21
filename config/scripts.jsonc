@@ -1,41 +1,36 @@
-/**
- * npm command aliases. Run an entry with npm run <name>, or npm test for test.
- * After changing aliases here, generate package.json before invoking the changed command.
- * Use python3 scripts/generate_manifest.py if the generated npm aliases are missing or stale.
- */
 {
     "scripts": {
-        // Generate the manifest, build, open an isolated development window, then watch sources.
+
         "dev": "python3 scripts/dev.py",
-        // Allow attaching a debugger after startup; DEBUG_PORT defaults to 9230.
+
         "dev:debug": "python3 scripts/dev.py --debug",
-        // Pause Extension Host startup until the debugger attaches, useful for activate().
+
         "dev:debug:break": "python3 scripts/dev.py --debug-break",
-        // VS Code packaging/publishing tools invoke this hook to prepare the release bundle.
+
         "vscode:prepublish": "npm run package",
-        // Stop at the first failed step; only bundle after type checking and linting succeed.
+
         "compile": "npm run manifest && npm run check-types && npm run lint && node esbuild.js",
-        // Start all watch: prefixed scripts in parallel; watch-tests is a separate command.
+
         "watch": "npm-run-all -p watch:*",
-        // Regenerate the manifest on every source rebuild. JSONC-only changes are not watched.
+
         "watch:esbuild": "npm run manifest && node esbuild.js --watch",
-        // Report type errors continuously without emitting JavaScript.
+
         "watch:tsc": "tsc --noEmit --watch --project tsconfig.json",
-        // Produce a minified release bundle; this command does not create a .vsix archive.
+
         "package": "npm run manifest && npm run check-types && npm run lint && node esbuild.js --production",
-        // Emit TypeScript under out/; .vscode-test.mjs discovers out/test/**/*.test.js.
+
         "compile-tests": "tsc -p . --outDir out",
-        // Recompile tests on edits; this does not execute tests automatically.
+
         "watch-tests": "tsc -p . -w --outDir out",
-        // npm runs this before npm test. The final lint repeats the lint already run by compile.
+
         "pretest": "npm run compile-tests && npm run compile && npm run lint",
-        // Check the source and test files selected by tsconfig.json, without emitting files.
+
         "check-types": "tsc --noEmit",
-        // Apply eslint.config.mjs rules to src; this command does not lint test/.
+
         "lint": "eslint src",
-        // Run integration tests inside VS Code using .vscode-test.mjs.
+
         "test": "vscode-test",
-        // Combine project JSONC and class declarations without launching VS Code.
+
         "manifest": "python3 scripts/generate_manifest.py"
     }
 }
