@@ -102,8 +102,7 @@ Toolkit. See [backend setup and troubleshooting](docs/backend.md).
 
 - Geometry is a wireframe preview of the configured **initial pose**. Moving
   collider poses are not streamed to the canvas; particle positions are live.
-- The canvas displays at most 20,000 sampled particles. Statistics and manual
-  CSV exports use the full received snapshot.
+- The canvas displays every particle in the snapshot received from the engine.
 - OBJ preview supports up to 500,000 vertices and 250,000 triangles; it does not
   import MTL files or textures.
 - Catalog entries are reference parameter sets. VHS and VSS availability varies

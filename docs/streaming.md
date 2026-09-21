@@ -195,10 +195,10 @@ checks establish different things. See
 ## Presentation and Exports
 
 Streaming retains full particle snapshots. The central browser preview receives
-at most 20,000 sampled particles per frame, together with the true particle count.
-Right-side statistics and left-side CSV exports use the full snapshot. The
-preview renders configured geometry at its initial pose: live unit transforms
-are not part of the snapshot protocol.
+every particle position and species value from each delivered snapshot. Right-side
+statistics and left-side CSV exports use the same full snapshot. The preview
+renders configured geometry at its initial pose: live unit transforms are not
+part of the snapshot protocol.
 
 The right sidebar shows step/time, particle/cell counts, speed statistics, species
 counts, and a bounded history of recent snapshots. SIMULATION LOG records state

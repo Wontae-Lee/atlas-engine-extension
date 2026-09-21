@@ -137,10 +137,9 @@ transforms. Camera controls include orbit, pan, zoom, Fit, and axis presets.
 Geometry is the configured initial pose; dynamic collider transforms are not
 part of the engine snapshot. Infinite planes use finite dashed previews.
 
-Display sampling caps particle arrays at 20,000; the wire preview caps OBJ input
-at 500,000 vertices/250,000 triangles and polygonal prisms at 4,096 sides. Preview
-errors are displayed rather than silently substituting a shape. These display
-limits do not truncate statistics, CSV exports, or the engine's full snapshots.
+The canvas receives every particle in the engine snapshot. The wire preview caps
+OBJ input at 500,000 vertices/250,000 triangles and polygonal prisms at 4,096
+sides. Preview errors are displayed rather than silently substituting a shape.
 Editing the case hides previously applied particles until the new case is applied.
 
 Right-side history keeps up to 300 snapshots. SIMULATION LOG keeps up to 300

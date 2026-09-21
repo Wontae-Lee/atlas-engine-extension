@@ -26,7 +26,6 @@ export interface SceneFrame {
 		step: number;
 		time: number;
 		particle_count: number;
-		sample_count: number;
 		positions: Vector3[];
 		species: number[];
 	};

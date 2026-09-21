@@ -38,15 +38,12 @@ export class Scene extends SimulationView {
 			}));
 		}
 		const snapshot = status.applied ? this.streaming.last_snapshot : undefined;
-		const stride = snapshot ? Math.max(1, Math.ceil(snapshot.positions.length / 20000)) : 1;
-		const positions = snapshot?.positions.filter((_, index) => index % stride === 0);
 		return {
 			type: 'scene', status, project,
 			assets: this.delivered_revision === status.revision ? undefined : await this.assets,
 			snapshot: snapshot ? {
 				step: snapshot.step, time: snapshot.time, particle_count: snapshot.particle_count,
-				sample_count: positions!.length, positions: positions!,
-				species: snapshot.species.filter((_, index) => index % stride === 0)
+				positions: snapshot.positions, species: snapshot.species
 			} : undefined
 		};
 	}

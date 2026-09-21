@@ -21,7 +21,7 @@ publication or a successful validation run.
 - Molecular catalog with separately sourced VHS/VSS presets, provenance,
   parameter editing, and model compatibility checks.
 - Central Simulation webview with Apply, Start, Pause, Step, and Reset, local
-  geometry/OBJ preview, camera controls, and sampled live particle rendering.
+  geometry/OBJ preview, camera controls, and live particle rendering.
 - Right SIMULATION STATUS tree with full-snapshot statistics, species counts,
   and bounded recent history; bottom SIMULATION LOG tab with state and progress.
 - Particle and statistics CSV exports in OUTPUT, alongside observer settings.
@@ -38,6 +38,8 @@ publication or a successful validation run.
 
 ### Changed
 
+- Removed the 20,000-particle canvas sampling cap; Simulation now forwards every
+  particle in the engine snapshot to the Webview without changing engine behavior.
 - Organized views by left, right, bottom, and center regions under `src/atlas/views`.
 - Moved sidebar field/action ownership into concrete views; kept CaseProject
   responsible for configuration, validation, persistence, and engine conversion.

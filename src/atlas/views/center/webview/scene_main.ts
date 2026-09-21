@@ -13,7 +13,6 @@ const page = new SimulationPage(message => {
 	const snapshot = frame.snapshot;
 	document.getElementById('snapshot')!.textContent = snapshot
 		? `Step ${snapshot.step.toLocaleString()} · ${snapshot.time.toPrecision(5)} s · ${snapshot.particle_count.toLocaleString()} particles`
-			+ (snapshot.positions.length < snapshot.particle_count ? ` · showing ${snapshot.positions.length.toLocaleString()} sampled particles` : '')
 		: 'Case preview · No particle snapshot for the current settings';
 	const errors = document.getElementById('scene-errors')!;
 	errors.textContent = renderer.errors.join('\n');
