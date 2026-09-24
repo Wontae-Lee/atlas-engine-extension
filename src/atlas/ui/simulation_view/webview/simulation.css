@@ -1,0 +1,6 @@
+body { color: var(--vscode-foreground); background: var(--vscode-editor-background); margin: 0; font: 13px var(--vscode-font-family); }
+#controls { display: flex; flex-wrap: wrap; gap: 6px; padding: 12px; border-bottom: 1px solid var(--vscode-panel-border); }
+button { color: var(--vscode-button-foreground); background: var(--vscode-button-background); border: 0; padding: 6px 10px; cursor: pointer; }
+button:hover { background: var(--vscode-button-hoverBackground); }
+#summary { padding: 10px 12px; }
+#conditions { display: block; width: 100%; height: calc(100vh - 110px); min-height: 280px; }

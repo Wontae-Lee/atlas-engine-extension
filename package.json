@@ -49,82 +49,31 @@
   },
   "contributes": {
     "viewsContainers": {
-      "activitybar": [
-        {
-          "id": "atlas-engine",
-          "title": "ATLAS",
-          "icon": "media/atlas-engine-logo.svg"
-        }
-      ],
       "secondarySidebar": [
         {
-          "id": "atlas-engine-inspector",
-          "title": "SIMULATION STATUS",
-          "icon": "media/atlas-engine-logo.svg"
-        }
-      ],
-      "panel": [
-        {
-          "id": "atlas-engine-logs",
-          "title": "SIMULATION LOG",
+          "id": "atlas-engine-simulation",
+          "title": "ATLAS SIMULATION",
           "icon": "media/atlas-engine-logo.svg"
         }
       ]
     },
     "views": {
-      "atlas-engine": [
+      "atlas-engine-simulation": [
         {
-          "id": "atlas-engine.domain",
-          "name": "DOMAIN",
-          "visibility": "collapsed"
-        },
-        {
-          "id": "atlas-engine.assets",
-          "name": "ASSETS"
-        },
-        {
-          "id": "atlas-engine.materials",
-          "name": "MATERIALS"
-        },
-        {
-          "id": "atlas-engine.geometry",
-          "name": "GEOMETRY"
-        },
-        {
-          "id": "atlas-engine.sources",
-          "name": "SOURCES"
-        },
-        {
-          "id": "atlas-engine.boundaries",
-          "name": "BOUNDARIES"
-        },
-        {
-          "id": "atlas-engine.sinks",
-          "name": "SINKS"
-        },
-        {
-          "id": "atlas-engine.solvers",
-          "name": "SOLVERS"
-        },
-        {
-          "id": "atlas-engine.output",
-          "name": "OUTPUT"
-        }
-      ],
-      "atlas-engine-inspector": [
-        {
-          "id": "atlas-engine.inspector",
-          "name": "SIMULATION STATUS"
-        }
-      ],
-      "atlas-engine-logs": [
-        {
-          "id": "atlas-engine.logs",
-          "name": "SIMULATION LOG"
+          "id": "atlas-engine.simulation",
+          "name": "SIMULATION"
         }
       ]
     },
     "commands": [
+      {
+        "command": "atlas-engine.project.create",
+        "title": "Atlas Engine: Create Project"
+      },
+      {
+        "command": "atlas-engine.project.open",
+        "title": "Atlas Engine: Open Project"
+      },
       {
         "command": "atlas-engine.backend.select",
         "title": "Atlas Engine: Select Backend"
@@ -134,17 +83,84 @@
         "title": "Atlas Engine: Check Backend"
       },
       {
+        "command": "atlas-engine.scene.open",
+        "title": "Atlas Engine: Open Simulation"
+      },
+      {
         "command": "atlas-engine.layout.show",
         "title": "Atlas Engine: Show Layout"
       },
       {
-        "command": "atlas-engine.project.action",
-        "title": "Atlas Engine: Edit Case"
+        "command": "atlas-engine.simulation.validate",
+        "title": "Atlas Engine: Validate Simulation"
       },
       {
-        "command": "atlas-engine.scene.open",
-        "title": "Atlas Engine: Open Simulation"
+        "command": "atlas-engine.simulation.apply",
+        "title": "Atlas Engine: Apply Simulation"
+      },
+      {
+        "command": "atlas-engine.parameter.edit",
+        "title": "Atlas Engine: Edit Parameter"
+      },
+      {
+        "command": "atlas-engine.parameter.add",
+        "title": "Atlas Engine: Add Object"
+      },
+      {
+        "command": "atlas-engine.parameter.remove",
+        "title": "Atlas Engine: Remove Object"
+      },
+      {
+        "command": "atlas-engine.asset.import",
+        "title": "Atlas Engine: Import OBJ Asset"
+      },
+      {
+        "command": "atlas-engine.log.show",
+        "title": "Atlas Engine: Show Log"
       }
-    ]
+    ],
+    "menus": {
+      "explorer/context": [
+        {
+          "command": "atlas-engine.project.open",
+          "when": "resourceFilename == atlas.project.json",
+          "group": "atlas@1"
+        },
+        {
+          "command": "atlas-engine.asset.import",
+          "when": "resourceExtname == .obj",
+          "group": "atlas@2"
+        }
+      ],
+      "view/title": [
+        {
+          "command": "atlas-engine.project.create",
+          "when": "view == atlas-engine.simulation",
+          "group": "navigation@1"
+        },
+        {
+          "command": "atlas-engine.simulation.validate",
+          "when": "view == atlas-engine.simulation",
+          "group": "navigation@2"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "atlas-engine.parameter.edit",
+          "when": "view == atlas-engine.simulation && viewItem == atlasObject",
+          "group": "inline@1"
+        },
+        {
+          "command": "atlas-engine.parameter.add",
+          "when": "view == atlas-engine.simulation && viewItem == atlasArray",
+          "group": "inline@1"
+        },
+        {
+          "command": "atlas-engine.parameter.remove",
+          "when": "view == atlas-engine.simulation && viewItem == atlasRemovable",
+          "group": "inline@2"
+        }
+      ]
+    }
   }
 }

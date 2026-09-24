@@ -1,3 +1,5 @@
+import type {ChildProcessWithoutNullStreams} from 'node:child_process';
+
 export type BackendMode = 'tbb' | 'cuda';
 
 export const IMAGES: Readonly<Record<BackendMode, string>> = {
@@ -5,34 +7,10 @@ export const IMAGES: Readonly<Record<BackendMode, string>> = {
     cuda: 'ghcr.io/wontae-lee/atlas-engine-dev:cuda-ubuntu22.04'
 };
 
-export interface BackendInfo {
-    engine: string;
-    version: string;
-    protocol: number;
-    availableEngines?: string[];
-}
-
-
-export interface BackendConnection {
-    readonly mode: BackendMode;
-
-    info(signal?: AbortSignal): Promise<BackendInfo>;
-
-    request(method: string, params?: unknown, signal?: AbortSignal): Promise<unknown>;
-
-    on_exit(callback: (error: Error) => void): () => void;
-
+export interface EngineProcess {
+    readonly child: ChildProcessWithoutNullStreams;
+    on_exit(listener: (error: Error) => void): () => void;
     dispose(): void;
 }
 
-export interface BackendTransport {
-    check_docker(signal?: AbortSignal): Promise<void>;
-
-    has_image(mode: BackendMode, signal?: AbortSignal): Promise<boolean>;
-
-    pull(mode: BackendMode, on_output: (text: string) => void, signal?: AbortSignal): Promise<void>;
-
-    check_cuda(signal?: AbortSignal): Promise<string>;
-
-    open(mode: BackendMode, on_output: (text: string) => void, signal?: AbortSignal): Promise<BackendConnection>;
-}
+export type BackendState = 'disconnected' | 'starting' | 'ready' | 'failed';

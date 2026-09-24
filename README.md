@@ -1,114 +1,30 @@
-# Atlas Engine for VS Code
+# Atlas Engine Extension
 
-Configure and visualize DSMC simulations from VS Code, using an Atlas Engine
-backend running in Docker. Start with the built-in nitrogen case, edit your
-geometry and materials, and watch particle positions as the engine advances.
+A VS Code frontend for the native Atlas Interactive application. Edit simulation conditions in the **ATLAS SIMULATION** tree in the Secondary Sidebar, use the **Atlas Simulation** editor for a condition preview and runtime controls, and open the native renderer to see live particles.
 
-## Start from source
+Atlas Core performs simulation and validation. The extension communicates with `atlas-interactive` inside a published TBB or CUDA Docker image. It does not install Atlas locally or transfer particle arrays into VS Code.
 
-You need:
+## Requirements
 
-- VS Code compatible with the repository's declared requirement, `^1.138.0`.
-- Node.js and npm compatible with the locked development dependencies; Node.js
-  24 satisfies the current ESLint runtime requirement.
-- Python 3 for the development launcher and manifest generator.
-- Docker CLI access to a running **Linux x86-64 Docker server** for simulations.
+- VS Code compatible with `engines.vscode` in `config/package.jsonc`.
+- Docker CLI and a Linux x86-64 Docker server with access to the project folder.
+- For CUDA, an NVIDIA GPU, driver, and Container Toolkit supported by the selected image.
+- For the native window, a local X11 display accessible to Docker. Headless simulation works without it.
 
-From the repository directory:
+## Start
 
-```bash
-npm ci
-npm run dev
-```
+1. Open a local workspace folder in VS Code.
+2. Run **Atlas Engine: Create Project**. The extension creates `atlas.project.json`, `atlas.simulation.json`, `assets/geometry/`, `output/`, and `state/` in that folder.
+3. Select **Atlas Engine: Select Backend** if you want CUDA; TBB is the default. The extension downloads missing images and validates the current simulation through Atlas Interactive.
+4. Expand **ATLAS SIMULATION** in the Secondary Sidebar. Select a value to edit it as JSON. Use an array item's context menu to add or remove objects. An edit is saved only after the engine accepts its validation target.
+5. Open **Atlas Engine: Open Simulation**. **Apply** creates a native session. **Start**, **Pause**, **Step**, **Restart**, and **Save State** control that session. **Open Renderer** opens the native Atlas window when a display is available.
 
-The launcher builds the extension, opens an isolated VS Code development window,
-and watches for changes. Its settings and scratch workspace are kept in
-`.vscode-dev/`. The extension opens the Atlas layout and starts preparing the
-backend. On first use it selects **TBB (CPU)** and downloads the image if needed.
-Opening the UI does not start a simulation.
+The built-in Explorer shows project, asset, output, and state files. Right-click an OBJ file to import it as an Atlas geometry asset. The condition preview draws configured bounds and geometry; live particles appear only in the native renderer.
 
-If the layout is hidden, open the Command Palette and run
-**Atlas Engine: Show Layout**. For CLion setup, debugging, or a custom VS Code
-executable, see the [development guide](docs/development.md).
+Changing a setting after **Apply** leaves the current session on its previous revision until you apply again. Applying creates a new session before closing the old one, so a rejected configuration leaves the old session available. Switching backend clears the active session.
 
-## Run your first simulation
+`atlas.project.json` is the editable extension model. `atlas.simulation.json` is generated engine configuration. Atlas writes CSV under `output/` when enabled and saved binary state under `state/time_step_*/`. Atlas Interactive currently has no restore command; **Save State** does not offer restore.
 
-1. Wait for `atlas-engine-backend` in the status bar to report Ready.
-2. Inspect the initial case in the ATLAS sidebar.
-3. In the central **Simulation** tab, click **Apply to Engine**.
-4. Click **Step** to advance once, or **Start** to run continuously.
-5. Click **Pause** to stop advancing. Use **Reset** to return the applied case
-   to step zero.
+## Development
 
-The initial case uses nitrogen (N₂, VHS), a sphere collider centered at `(0, 0, 0)`
-with radius `0.5 m`, and a square inlet at `x = -1 m` emitting toward positive X.
-The domain runs from `(-1, -1, -1)` to `(1, 1, 1)` metres. Particles outside the
-Domain are removed automatically; there is no switch to enable that behavior.
-
-Editing a case changes its saved settings. **Pause, then Apply to Engine** to
-replace the running configuration with those changes. Replacing an existing
-simulation asks for confirmation. Reset restores the applied initial
-configuration; it does not restore the sidebar's default nitrogen settings.
-
-## Where things live
-
-| Area | What to do there |
-| --- | --- |
-| Left: DOMAIN | Set bounds and cell size |
-| Left: ASSETS | Import and manage OBJ files |
-| Left: MATERIALS | Choose VHS/VSS catalog presets and edit material properties |
-| Left: GEOMETRY, SOURCES, BOUNDARIES, SINKS | Build the simulation case |
-| Left: SOLVERS | Edit DSMC solver settings |
-| Left: OUTPUT | Configure the observer and export snapshot CSV files |
-| Center: Simulation | View geometry and particles; Apply, Start, Pause, Step, Reset |
-| Right: SIMULATION STATUS | Inspect state, counts, speeds, species, and recent snapshots |
-| Bottom: SIMULATION LOG | Read simulation state changes, progress, and errors |
-| Status bar: atlas-engine-backend | Choose or check the Docker backend |
-
-In the Simulation canvas, drag to orbit, Shift-drag or right-drag to pan, and
-scroll to zoom. **Fit** and the camera selector help frame the scene. The
-Domain, Geometry, and Particles checkboxes control visibility.
-
-## Meshes, saved settings, and output
-
-**ASSETS → Import Mesh Asset** copies an OBJ into the chosen workspace's
-`assets/geometry/` directory. A Geometry item can then reference that asset.
-Importing a file alone does not create a simulation object. Sphere, Box, and
-other built-in shapes do not need an asset file.
-
-Case settings are saved in VS Code's workspace state. There is currently no
-`atlas.jsonc` project-file import/export workflow. OBJ records use a relative
-asset path plus the owning workspace URI; moving or cloning a folder does not
-by itself transfer the saved case settings.
-
-Under **OUTPUT**:
-
-- **Export Particle Snapshot CSV** saves positions, velocities, and species for
-  the last received snapshot to a location you choose.
-- **Export Snapshot Statistics CSV** saves totals, mean/RMS speed, and species
-  counts for that snapshot.
-- **CSV observer** settings control engine-side output inside the Docker
-  container. These files are separate from manual exports and are removed with
-  the container; there is no automatic download of observer output.
-
-## CPU and CUDA
-
-TBB works without an NVIDIA GPU. To use CUDA, click `atlas-engine-backend` and
-select **CUDA**. The extension checks GPU access through Docker before asking to
-download a missing CUDA image. It does not install drivers or NVIDIA Container
-Toolkit. See [backend setup and troubleshooting](docs/backend.md).
-
-## Current limits
-
-- Geometry is a wireframe preview of the configured **initial pose**. Moving
-  collider poses are not streamed to the canvas; particle positions are live.
-- The canvas displays every particle in the snapshot received from the engine.
-- OBJ preview supports up to 500,000 vertices and 250,000 triangles; it does not
-  import MTL files or textures.
-- Catalog entries are reference parameter sets. VHS and VSS availability varies
-  by species; the catalog does not provide chemistry or internal-energy
-  relaxation models.
-
-For implementation details, validation procedures, and contribution rules, use
-[the documentation index](docs/README.md). Implemented features are listed in the
-[changelog](docs/CHANGELOG.md).
+See [development setup](docs/development.md), [architecture](docs/vscode.md), [project format](docs/project.md), [backend](docs/backend.md), and [Interactive protocol](docs/interactive.md). `external/atlas-engine` is a development submodule and is excluded from the extension package.

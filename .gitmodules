@@ -1,0 +1,4 @@
+[submodule "external/atlas-engine"]
+	path = external/atlas-engine
+	url = https://github.com/Wontae-Lee/atlas-engine-dev.git
+	branch = main

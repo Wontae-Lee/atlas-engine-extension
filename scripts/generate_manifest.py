@@ -2,7 +2,6 @@
 import json
 from pathlib import Path
 import re
-import subprocess
 
 
 def read_jsonc(path):
@@ -60,20 +59,12 @@ def generate():
     for path in sorted(config.rglob("*.jsonc")):
         if path != base:
             merge(manifest, read_jsonc(path), str(path.relative_to(root)))
-    result = subprocess.run(
-        ["node", str(root / "scripts/read_contributions.cjs")],
-        check=True, capture_output=True, text=True,
-    )
-    merge(manifest, json.loads(result.stdout), "src/atlas/contributions.ts")
     output = json.dumps(manifest, ensure_ascii=False, indent=2, allow_nan=False) + "\n"
     destination = root / "package.json"
     if not destination.exists() or destination.read_text(encoding="utf-8") != output:
         destination.write_text(output, encoding="utf-8")
-    print("Generated package.json from config and src/atlas/contributions.ts")
+    print("Generated package.json from config")
 
 
 if __name__ == "__main__":
-    try:
-        generate()
-    except subprocess.CalledProcessError as error:
-        raise SystemExit(error.stderr.strip()) from error
+    generate()

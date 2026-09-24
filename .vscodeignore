@@ -7,6 +7,11 @@ docs/**
 out/**
 node_modules/**
 src/**
+external/**
+.gitmodules
+.agents/**
+AGENTS.md
+test/**
 .gitignore
 .yarnrc
 esbuild.js

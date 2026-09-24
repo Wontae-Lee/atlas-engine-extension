@@ -1,48 +1,51 @@
-import type {CollisionModel, MoleculeConfig} from '../streaming/streaming_types';
+import type {JsonObject} from '../engine/protocol';
 
-export type FieldValue = number | string | boolean | number[] | number[][];
-
-export interface ProjectEntry {
+export interface GeometryRecord {
     id: string;
     name: string;
-    kind: string;
-    fields: Record<string, FieldValue>;
-}
-
-export interface MaterialRecord {
-    id: string;
-    name: string;
-    preset_id: string;
-    collision_model: CollisionModel;
-    properties: MoleculeConfig;
+    geometry: JsonObject;
 }
 
 export interface AssetRecord {
     id: string;
     name: string;
     path: string;
-    workspace_uri: string;
 }
-
-export type EntrySection = 'geometry' | 'sources' | 'boundaries' | 'sinks';
 
 export interface ProjectState {
     version: 1;
-    initial_preset?: 'nitrogen_sphere';
-    domain: { lower_corner: number[]; upper_corner: number[]; cell_size: number };
-    solver: {
-        collision_model: CollisionModel;
-        dt: number;
-        statistical_weight: number;
-        buffer_size: number;
-        majorant_sample_pairs: number;
-        majorant_exhaustive_limit: number;
-    };
-    output: { enabled: boolean; interval: number; output_directory: string };
+    simulation: JsonObject;
+    geometries: GeometryRecord[];
     assets: AssetRecord[];
-    materials: MaterialRecord[];
-    geometry: ProjectEntry[];
-    sources: ProjectEntry[];
-    boundaries: ProjectEntry[];
-    sinks: ProjectEntry[];
+    output: {
+        csv_enabled: boolean;
+        csv_filename: string;
+    };
+}
+
+export function default_project(): ProjectState {
+    return {
+        version: 1,
+        simulation: {
+            dt: 0.00005,
+            fluid: {
+                buffer_size: 20000,
+                particle_count: 0,
+                statistical_weight: 3.236e16,
+                materials: [{
+                    type: 'molecule', mass: 4.65e-26,
+                    translational_energy: 0, rotational_energy: 0, vibrational_energy: 0,
+                    reference_diameter: 4.17e-10, reference_temperature: 273,
+                    viscosity_index: 0.74, scattering_parameter: 1
+                }]
+            },
+            universe: {lower_corner: [-1, -1, -1], upper_corner: [1, 1, 1], cell_size: 0.1},
+            solvers: [{kernel: 'variable_hard_sphere', majorant_sample_pairs: 8,
+                majorant_exhaustive_limit: 5}],
+            emitters: [], colliders: [], sinks: []
+        },
+        geometries: [],
+        assets: [],
+        output: {csv_enabled: false, csv_filename: 'statistics.csv'}
+    };
 }

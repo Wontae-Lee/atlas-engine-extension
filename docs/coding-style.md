@@ -2,7 +2,7 @@
 
 These rules describe how to write and change code in Atlas Engine Extension.
 For source layout and component ownership, see
-[Extension architecture](vscode.md) and [Streaming](streaming.md).
+[Extension architecture](vscode.md) and [Interactive](interactive.md).
 
 ## 1. Scope and Readability
 
@@ -18,11 +18,8 @@ For source layout and component ownership, see
 - Do not split work into many tiny helpers merely to shorten functions.
 - Extract a helper or type when it has a substantial, clearly named
   responsibility.
-- Place internal implementations shared across component areas in
-  `src/atlas/detail/`. Keep repeated helper functions in its single
-  `private_helpers.ts`; do not add parallel helper files for the same purpose.
-- Stateful implementations remain separate classes, one per file. A shared
-  helper file does not replace component ownership or the System execution flow.
+- Put code under the layer that owns it: `app`, `backend`, `engine`, `project`,
+  or `ui`. Keep stateful implementations separate classes, one per file.
 - Follow nearby code conventions where applicable, without importing an
   unrelated module structure.
 
@@ -62,13 +59,9 @@ For source layout and component ownership, see
   condition.
 - Preserve existing behavior and ownership unless the task requires a change.
 - Avoid unrelated performance or data-layout changes.
-- Keep case state and validation independent of view field definitions. Section
-  views own their editable fields and UI behavior; reusable view bases own only
-  common presentation and input handling.
-- Keep constructors and module initialization reachable from contributions free
-  of live VS Code calls, runtime file reads, processes, and network operations. Pass
-  runtime services and the VS Code API through initialization or constructors
-  according to the component's existing lifecycle.
+- Keep Project state and engine validation independent of tree field definitions.
+- Keep manifest configuration free of live VS Code calls, runtime file reads,
+  processes, and network operations. Start runtime services during activation.
 - Browser Webview code must not import Node.js or the live VS Code module. Use
   the validated message boundary to request host operations.
 
@@ -96,10 +89,3 @@ comment needs to be updated:
 - Keep temporary logging, counters, assertions, probes, timing code, and
   instrumentation-only fields out of production code unless requested.
 - Do not leave debugging scaffolding behind after completing a change.
-
-## 7. Validation
-
-- Do not run builds, tests, benchmarks, simulations, generators, or formatters
-  unless the user explicitly asks.
-- Report what was actually checked. Do not claim a check passed when it was not
-  run.
